@@ -1,0 +1,117 @@
+Notes
+
+10/01/2018
+12:50 - 15:20	Get re-acquanted with code for newton rapshon dic (dicNR and NRtracking3)
+				Although the derivation of the getJac functions in NRtracking3 seem to be legit (according to paper Deformation 
+				Measurement by DIC: Implementation of a second-order displacement gradient) they do not converge the P values
+18:00 - 17:00	Try add a progress bar to dicNR so that you can see the progress of a pictures correlation since it can be slow
+				Figured out you must do (-jacky') instead of (-jacky)' for the hessian
+
+14/01/2018
+14:00 - 16:00	Determine if zero-mean sum of squared difference (getJac5) is working (check what correlation values it is giving)
+				Write function getJac6 in NRtracking3.m to perform normalised sum of squared difference NR
+				change P=P+dP to P=P-dP ( which is consistent with the papers)
+				write getJac7 which has the full derivatives (to see if this has an effect)
+				~ robustness of the NR algorithm is an issue (also needs considerable ram for coefficients)
+				Created getJac8 which is normalised cross correlation 
+
+				getJac6 breaks down at image 3 whether it is P+dP or P-dP
+				getJac7 +/- (+0.2) fails at image 3 - for (-0.2 it gets to like 0.049 ish ~ breaks down in the same way at image 6 (0.0756))
+
+16/01/2018
+10:50 - 19:00	correlate using lucas kanade (using same parameters) so that these results can be compared to those of Newton Raphson to figure
+				out what is going wrong.
+				Using the lucas-kanade (zero-mean) results the getJac5 NR algorithm (P+0.4*dP) converges to the required correlation value (0.005)
+				Reading and trying to understand "newton-type methods" and how they use cholesky to improve convergence
+				Tried to implement cholesky to improve stability but it doesnt work. The cholesky factor (matrix) becomes complex and so its breaks down
+
+
+17/01/2018
+11:20 - 14:00	Continue working on cholesky implementation.
+				Look into line search methods (golden section) - seems to work initially but can get stuck at an unacceptable 
+				correlation coefficient (with getJac6) (same with getJac5) - the hessian doesn't seem to allow the algorithm to
+				make changes to the variable that needs to be changed (x disp) without also changing other variables so the 
+				algorithm gets stuck since it cant improve the correlation coefficient.
+15:30 - 17:30	Try to create getJac6_2 to only work with x and y disp but it gave a NaN jacobian and hessian
+				Add an if statement in NRtracking3_temp to consider only the x/y disp if the norm of the stepChange is small - seems to work
+				but it can cause a big increase in the correlation value.
+				Changed algorithm (NRtracking3_temp) to first perform golden section for x and y disp and then all the variables - seems to
+				give much quicker correlation (remember that the DIC data used is from a tension specimen so it is mostly x/y disp)
+
+18/01/2018
+11:30 - 16:00	Adjust exit condition for NRtracking3_temp so that it exits if the correlation coefficient doesn't change significantly and 
+				it is still acceptable.
+
+23/01/2018
+11:40 - 14:10	Improve efficiency of dicNR_temp by only passing the interpolation coefficients that are relevant to the subset so that each worker
+				uses less memory allowing more cores to be used.
+				Created getJac6_eff so that normalised sum of square difference can be used more efficiently.
+15:15 - 17:30	Write getJac1 to do zero-mean normalised sum of squared difference and test it out.
+				Edit passing of interpolation coefficients in first iteration of NR (dicNR_temp) - wasn't working
+
+24/01/2018
+11:00 - 14:00	Edit passing of interpolation coefficients to take into account the displacement in the x and y directions so that the 
+				correct area of coefficient values are passed. - not working, still tries coef matrix value outside of range
+
+25/01/2018
+11:00 - 13:30	Start writing section on Newton-Raphson method and try newtons method with absolute of hessian. (absolute of hessian does 
+				not improve situation - can lead to slower convergence or none at all)
+14:50 - 19:00	Considering how to finalise NR code so that its is more robust and corrects correlations with bad correlation coefficients.
+				Try dicNR of zero-mean normalised sum of squared difference with stricter stopping condition to see if I get better results.
+				Change NRtracking3_temp to try artificial search directions (and keep the best if it is better than the previous corr value) 
+				when the norm of the step change is small.
+				Was using xa=-10 and xb=10 in golden section line search without realising that the correlation coefficient might not be
+				convex over this region - this is why algorithm often fails.
+				Create function GoldenBracket to bracket the golden section search range- seem to improve stability
+				Change stopping condition so that it is dependent more on the norm of the step change.
+				Also only allow the hessian and jacobian to dictate the next iteration step if the funcval is not bigger than a multiple 
+				of the previous funcval
+
+26/01/2018
+10:30 - 18:30	Work on stopping criteria in NRtracking3_temp.
+				Improve bracketing function by trying many values and selecting the lowest-improved robustness (since there are so many dimensions
+				the line of search in the dP direction is not guaranteed to be convex and it is unknown over what region it will be convex).
+
+28/01/2018
+11:20 - 17:30	Write section on Newton raphson - explain how determine hessian and jacobian.
+				Try create outlier function to look for outliers and correct them.
+				Add missing correlation coefficient to DICtracking2.m for lucas-kanade.
+				Write function correctFloor.m to remove the D() operator in the hessian and jacobian of the light intensity values
+				Try to figure out more efficient interpolation - got matrix multiplication working but it takes longer than using for loops
+
+30/01/2018
+10:30 - 15:00	Write section on golden section search method
+
+31/01/2018
+11:00 - 18:00	Rewrite Newton-raphson section and make congruent.
+				Correct correlation equations in report
+
+02/02/2018
+12:20 - 15:00	Check methods for determining convexity of mutli-dimensional functions in bracketing algorithm. - not done much
+
+04/02/2018
+12:00 - 14:20	Create time plan on office 365 planner
+				Create new dic.m file that performs both NR and LK using same call file.
+				Try create NR_symbolic which is meant to create the functions for the Jacobian and Hessian in a similar manner to symbolic_warp
+15:20 - 17:30	Continue working on NR_symbolic - got working
+				Use correct floor to remove D() operators within NR_symbolic
+				Check how to pass name of a function to a function (use str2func to convert string to function)
+
+05/02/2018
+10:30 - 13:00	got str2func working so that the warp function changes dynamically within the NR optmization algorithm (NRtracking4.m)
+				create seperate function for golden section search
+				made getjac functions change based on choice input to NRtracking4
+
+
+
+TO DO:
+1. For NR only determine coefficients for data that is close to the area of correlation to reduce memory usage and allow more cores to be used - done somewhat
+2. Get NR working with interpolation based on F and not G (speed up process)
+3. Rewrite getJac functions to be be more efficient - done
+4. Pass the exit condition of the correlation step so that it can be improved upon later if need be.
+5. Bracketing function for golden search to ensure search interval is convex
+6. Machine learning/deep learning to adjust parameters of stopping criteria in NRtracking3_temp
+7. Need to do LK_symbolic so that it is more robust for different warp functions
+
+ripple
+ethos

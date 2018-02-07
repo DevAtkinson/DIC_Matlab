@@ -1,0 +1,23 @@
+B. Pan, H-M. Xie, B-Q. Xu and F-L. Dai, “Performance of sub-pixel registration algorithms in
+digital image correlation,” Meas. Sci. Technol. 17, 1615–1621 (2006).
+
+C. Cofaru, W. Philips and W. Van Paepegem, “Evaluation of digital image correlation techniques
+using realistic ground truth speckle images,” Meas. Sci. Technol. 21, 055102 (17 pp.)
+(2010).
+
+
+
+
+
+
+
+
+
+
+
+
+
+minimization methods
+newton raphson
+halley's method
+schroeder's method
