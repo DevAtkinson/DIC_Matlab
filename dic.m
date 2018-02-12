@@ -59,7 +59,7 @@ function dic()
 
 	if exist(save_full,'file')
 		load(save_full);
-		Proc.correlated_to=41;
+		% Proc.correlated_to=41;
 		subpos=Proc.subpos;
 		% guess_store=Proc.guess;
 		guess_store=[0 0];
@@ -204,6 +204,10 @@ function dic()
 		
 		if (k==(1+inc)) %if this is the first image to be correlated
 			tic
+			lb=[-5 -0.5 -0.5 -5 -0.5 -0.5];
+			ub=[5 0.5 0.5 5 0.5 0.5];
+			coef_shift(3)=5;
+			[guess,funcval]=particleFirstGuess('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'coef',coef((subpos{process_order(1,2),process_order(1,3)}.coords(1)-stepsize*coef_shift(3)):(subpos{process_order(1,2),process_order(1,3)}.coords(3)+stepsize*coef_shift(3)),(subpos{process_order(1,2),process_order(1,3)}.coords(2)-stepsize*coef_shift(3)):(subpos{process_order(1,2),process_order(1,3)}.coords(4)+stepsize*coef_shift(3)),:),'coef_shift',[0 0 coef_shift(3)],'save_name',save_as,'algorithm',1,'lb',lb,'ub',ub)
 			if strcmp(correlation_method,'NR')==1
 				[PP(1,:),Corrr(1),iter(1)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'coef',coef((subpos{process_order(1,2),process_order(1,3)}.coords(1)-stepsize):(subpos{process_order(1,2),process_order(1,3)}.coords(3)+stepsize),(subpos{process_order(1,2),process_order(1,3)}.coords(2)-stepsize):(subpos{process_order(1,2),process_order(1,3)}.coords(4)+stepsize),:),'coef_shift',[0 0 1],'save_name',save_as,'algorithm',1)
 			elseif strcmp(correlation_method,'LK')==1
@@ -308,3 +312,4 @@ function [out,minindex]=testOutlier(Cor)
 			
 	end
 end
+

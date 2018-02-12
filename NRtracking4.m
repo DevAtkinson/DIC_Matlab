@@ -346,7 +346,7 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 						P_store(count,:)=P;
 						% fprintf('not work   %.16f %d\n',val, minimum);
 					elseif Funcval_prev<val
-						% % options = optimoptions('particleswarm','Display','iter');
+						% options = optimoptions('fmincon','Display','iter');
 						% lb=P-0.2*abs(P);
 						% ub=P+0.2*abs(P);
 						% tic
@@ -359,17 +359,32 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 						% P=Pout;
 						% P_store(count,:)=P;
 
+						% lb=P-0.2*abs(P)-[5,0.5,0.5,5,0.5,0.5];
+						% ub=P+0.2*abs(P)+[5,0.5,0.5,5,0.5,0.5];
+						% options = optimoptions('fmincon','Display','iter');
+						% nonlcon = @unitdisk;
+						% tic
+						% Pout = fmincon(@(P) getJac(coef,P,dy,dx,x0,y0,F,4,choice2,subpos,stepsize,coef_shift,save_name),P_store(count-1,:),[],[],[],[],lb,ub,nonlcon,options)
+						% toc
+						% [G,Funcval]=getJac(coef,Pout,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
+						% Funcval
+						% Funcval_store(count)=Funcval;
+						% stepChange_store(count,:)=Pout-P;
+						% P=Pout;
+						% P_store(count,:)=P;
+
 						Funcval_store(count)=Funcval_prev;
 						stepChange_store(count,:)=stepChange_prev;
 						P=P_prev;
 						P_store(count,:)=P;
+
 						% fprintf('not work prev  %.16f \n',Funcval_store(count));
-					else
-						Funcval_store(count)=Funcval_store(count-1);
-						stepChange_store(count,:)=stepChange_store(count-1);
-						P=P_store(count-1,:);
-						P_store(count,:)=P;
-						% fprintf('not work prev2  %.16f \n',Funcval_store(count));
+					% else
+					% 	Funcval_store(count)=Funcval_store(count-1);
+					% 	stepChange_store(count,:)=stepChange_store(count-1);
+					% 	P=P_store(count-1,:);
+					% 	P_store(count,:)=P;
+					% 	% fprintf('not work prev2  %.16f \n',Funcval_store(count));
 					end
 
 				end
@@ -377,11 +392,11 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 
 			% norm(stepChange_store(count,:))
 		% tic
-		% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
+		% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,2,choice2,subpos,stepsize,coef_shift,save_name);
 		% toc
 		% meshcompare(F,G)
-		% stepChange_store(count,:)
-		% Funcval_store(count)
+		stepChange_store(count,:)
+		Funcval_store(count)
 		% P
 		% norm(stepChange_store(count,:))
 

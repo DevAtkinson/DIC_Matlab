@@ -103,11 +103,11 @@ Notes
 				made getjac functions change based on choice input to NRtracking4
 
 07/02/2018
-11:30 - 	Continue to get NRtracking4 working
+11:30 - 16:00	Continue to get NRtracking4 working
 				Add functionality to create a new folder for each project and save relevant data in there
 				Improve dic.m to be more robust and logical
 				Fix issues with NRtracking4
-				Try particle swarm in NRtracking4 when NR breaks down
+				Try particle swarm in NRtracking4 when NR breaks down - works but takes a long time
 
 
 
