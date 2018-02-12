@@ -83,299 +83,182 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 		% [G,J,H]=getJac1_eff(coef,P,dy,dx,x0,y0,F,2,subpos,stepsize,coef_shift,coef2);
 		% meshcompare(F,G)
 		% search_flag
-		% if (search_flag==0)%&&(count>2)
-		% 	if  count<0 %(count<0)&&(mod(count,10)==0)%(count>1)&((norm(stepChange)<0.000001))&(dP_flag==0)
-		% 		if (count==1)||(count==3)
-		% 			dP=[1;0;0;0;0;0];
-		% 			testing=testing+1;
-		% 			dP_flag=1;
-		% 		elseif (count==2)|(count==4)
-		% 			dP=[0;0;0;1;0;0];
-		% 			testing=testing+1;
-		% 			dP_flag=1;
-		% 		end
-		% 		% [G,Funcval]=getJac1_eff(coef,P,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift);
-		% 		% Funcval_start=Funcval
-		% 	else
-		% 		% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
-		% 		[G,J,H]=getJac(coef,P,dy,dx,x0,y0,F,2,choice2,subpos,stepsize,coef_shift,save_name);
-		% 		% [G,J,H,Funcval]=getJac5(coef,P,dy,dx,x0,y0,F);
-		% 		% [L,D,C]=AdjustCholesky(H,0.0001);
-		% 		% H=C*C';
-		% 		% dP=abs(H)\J;
-		% 		dP=H\J;
-		% 		dP_flag=0;
-		% 		% [~,pos_def] = chol(H)
-		% 	end
-		% 	% P_store(count,:)=P;
-		% 	dP_store(count,:)=dP';
-
-		% 	if (dP_flag==1)||(normal_fail_count==1)
-		% 		[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.02,2,save_name);
-		% 	else
-		% 		[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.1,1,save_name);
-		% 	end	
-
-		% 	[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
-
-		% 	if count>2
-		% 		valid_check=Funcval/Funcval_store(count-1)<1.05;
-		% 		% stop_check2=Funcval_store(count)/Funcval_store(count-1)>0.995;
-		% 	else
-		% 		% stop_check2=0;
-		% 		valid_check=1;
-		% 	end
-		% 	if valid_check==1%Funcval<Funcval_store(count-1)
-		% 		P=Pout;
-		% 		P_store(count,:)=P;
-		% 		% iterations=i
-		% 		stepChange=step_change;
-		% 		% norm_step=norm(stepChange);
-		% 		stepChange_store(count,:)=stepChange;
-		% 		Funcval_store(count)=Funcval;
-		% 		artificial_dir_count=0;
-		% 		fail_count=0;
-		% 		normal_fail_count=0;
-		% 		% Funcval
-		% 	else
-		% 		count=count-1;
-		% 		normal_fail_count=normal_fail_count+1;
-		% 		if normal_fail_count==1
-		% 			search_flag=0;
-		% 		elseif normal_fail_count==2
-		% 			fail_count=fail_count+1;
-		% 			search_flag=1;
-		% 		end
-		% 		% stepChange=[999,999,999,999,999,999];
-		% 		% stepChange_store(count,:)=stepChange;
-		% 		% norm_step=norm(stepChange);
-		% 		% Funcval_store(count)=Funcval_store(count-1);
-				
-		% 	end
-
-
-
-		% 	% P=P+(dP')*(xa+xb)/2;
-		% 	% % iterations=i
-		% 	% stepChange=(dP')*(xa+xb)/2
-		% 	% norm_step=norm(stepChange);
-		% 	% stepChange_store(count,:)=stepChange;
-
-		% 	% [G,Funcval]=getJac1_eff(coef,P,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift);
-		% 	% % [G,J,H,Funcval]=getJac5(coef,P,dy,dx,x0,y0,F);
-		% 	% Funcval_store(count)=Funcval;
-		% 	% Funcval
-		% elseif (search_flag==1)%||(count<3)
-		% 	dP_temp_store=0;
-		% 	% fprintf('Starting direction check\n');
-		% 	for j=1:6
-		% 		if j==1
-		% 			dP=[1; 0; 0; 0; 0; 0];
-		% 		elseif j==2
-		% 			dP=[0; 0; 0; 1; 0; 0];
-		% 		elseif j==3
-		% 			dP=[0; 0.05; 0; 0; 0; 0];
-		% 		elseif j==4
-		% 			dP=[0; 0; 0; 0; 0.05; 0];
-		% 		elseif j==5
-		% 			dP=[0; 0; 0.05; 0; 0; 0];
-		% 		elseif j==6
-		% 			dP=[0; 0; 0; 0; 0; 0.05];
-		% 		end
-				
-		% 		[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
-		% 		Funcval_check(j)=Funcval;
-		% 		stepChange_check(j,:)=step_change;
-		% 		P_check(j,:)=Pout;
-		% 	end
-		% 	% Funcval_check
-		% 	[val,minimum]=min(Funcval_check);
-		% 	normal_fail_count=0;
-		% 	% stepChange_check(minimum,:)
-		% 	if count==1
-		% 		Funcval_store(count)=val;
-		% 		stepChange_store(count,:)=stepChange_check(minimum,:);
-		% 		P=P_check(minimum,:);
-		% 		P_store(count,:)=P;
-		% 		search_flag=0;
-		% 	else
-		% 		if val<=Funcval_store(count-1);
-		% 			Funcval_store(count)=val;
-		% 			stepChange_store(count,:)=stepChange_check(minimum,:);
-		% 			P=P_check(minimum,:);
-		% 			P_store(count,:)=P;
-		% 			search_flag=0;
-		% 			fail_count=0;
-		% 			% artificial_dir_count=artificial_dir_count+1;
-		% 		else 
-		% 			exit_flag=1;
-		% 			count=count-1;
-		% 			fail_count=fail_count+1;
-		% 			% Funcval_store(count)=Funcval_store(count-1);
-		% 			% stepChange_store(count,:)=[999,999,999,999,999,999];
-		% 			search_flag=0;
-		% 		end
-		% 	end
-
-		% elseif (search_flag==2)%||(count<3)
-		% 	for j=1:2
-		% 		if j==1
-		% 			dP=[1; 0; 0; 0; 0; 0];
-		% 		elseif j==2
-		% 			dP=[0; 0; 0; 1; 0; 0];
-		% 		end
-				
-		% 		[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
-		% 		P_check(j,:)=Pout;
-		% 		stepChange_check(j,:)=step_change;
-		% 		Funcval_check(j)=Funcval;
-		% 	end
-		% 	% Funcval_check
-		% 	[val,minimum]=min(Funcval_check);
-		% 	normal_fail_count=0;
-		% 	% stepChange_check(minimum,:)
-		% 	if count==1
-		% 		Funcval_store(count)=val;
-		% 		stepChange_store(count,:)=stepChange_check(minimum,:);
-		% 		P=P_check(minimum,:);
-		% 		P_store(count,:)=P;
-		% 		search_flag=0;
-		% 	else
-		% 		if val<=Funcval_store(count-1);
-		% 			Funcval_store(count)=val;
-		% 			stepChange_store(count,:)=stepChange_check(minimum,:);
-		% 			P=P_check(minimum,:);
-		% 			P_store(count,:)=P;
-		% 			search_flag=0;
-		% 			fail_count=0;
-		% 			% artificial_dir_count=artificial_dir_count+1;
-		% 		else 
-		% 			exit_flag=1;
-		% 			count=count-1;
-		% 			fail_count=fail_count+1;
-		% 			% Funcval_store(count)=Funcval_store(count-1);
-		% 			% stepChange_store(count,:)=[999,999,999,999,999,999];
-		% 			search_flag=0;
-		% 		end
-		% 	end
-		% end
-
-			if  count<3
-				for j=1:2
-					if j==1
-						dP=[1; 0; 0; 0; 0; 0];
-					elseif j==2
-						dP=[0; 0; 0; 1; 0; 0];
-					end
-					[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.1,2,save_name);
-					[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
-					Funcval_check(j)=Funcval;
-					stepChange_check(j,:)=step_change;
-					P_check(j,:)=Pout;
+		if (search_flag==0)%&&(count>2)
+			if  count<0 %(count<0)&&(mod(count,10)==0)%(count>1)&((norm(stepChange)<0.000001))&(dP_flag==0)
+				if (count==1)||(count==3)
+					dP=[1;0;0;0;0;0];
+					testing=testing+1;
+					dP_flag=1;
+				elseif (count==2)|(count==4)
+					dP=[0;0;0;1;0;0];
+					testing=testing+1;
+					dP_flag=1;
 				end
-				% Funcval_check
-				[val,minimum]=min(Funcval_check);
-				Funcval=val;
-				Pout=P_check(minimum,:);
-				stepChange=stepChange_check(minimum,:);
+				% [G,Funcval]=getJac1_eff(coef,P,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift);
+				% Funcval_start=Funcval
 			else
-
-
-
+				% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
 				[G,J,H]=getJac(coef,P,dy,dx,x0,y0,F,2,choice2,subpos,stepsize,coef_shift,save_name);
+				% [G,J,H,Funcval]=getJac5(coef,P,dy,dx,x0,y0,F);
+				% [L,D,C]=AdjustCholesky(H,0.0001);
+				% H=C*C';
+				% dP=abs(H)\J;
 				dP=H\J;
 				dP_flag=0;
-
-				% dP_store(count,:)=dP';
-
-				% if (dP_flag==1)||(normal_fail_count==1)
-				% 	[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.02,2,save_name);
-				% else
-					[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.1,2,save_name);
-				% end	
-
-				[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
+				% [~,pos_def] = chol(H)
 			end
-			if count==1
+			% P_store(count,:)=P;
+			dP_store(count,:)=dP';
+
+			if (dP_flag==1)||(normal_fail_count==1)
+				[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.02,2,save_name);
+			else
+				[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.1,1,save_name);
+			end	
+
+			[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
+
+			if count>2
+				valid_check=Funcval/Funcval_store(count-1)<1.05;
+				% stop_check2=Funcval_store(count)/Funcval_store(count-1)>0.995;
+			else
+				% stop_check2=0;
+				valid_check=1;
+			end
+			if valid_check==1%Funcval<Funcval_store(count-1)
 				P=Pout;
 				P_store(count,:)=P;
+				% iterations=i
 				stepChange=step_change;
+				% norm_step=norm(stepChange);
 				stepChange_store(count,:)=stepChange;
 				Funcval_store(count)=Funcval;
+				artificial_dir_count=0;
+				fail_count=0;
+				normal_fail_count=0;
+				% Funcval
 			else
-				if Funcval<(Funcval_store(count-1)*1.1)
-					% fprintf('work   %.16f \n',Funcval);
-					P=Pout;
+				count=count-1;
+				normal_fail_count=normal_fail_count+1;
+				if normal_fail_count==1
+					search_flag=0;
+				elseif normal_fail_count==2
+					fail_count=fail_count+1;
+					search_flag=1;
+				end
+				% stepChange=[999,999,999,999,999,999];
+				% stepChange_store(count,:)=stepChange;
+				% norm_step=norm(stepChange);
+				% Funcval_store(count)=Funcval_store(count-1);
+				
+			end
+
+
+
+			% P=P+(dP')*(xa+xb)/2;
+			% % iterations=i
+			% stepChange=(dP')*(xa+xb)/2
+			% norm_step=norm(stepChange);
+			% stepChange_store(count,:)=stepChange;
+
+			% [G,Funcval]=getJac1_eff(coef,P,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift);
+			% % [G,J,H,Funcval]=getJac5(coef,P,dy,dx,x0,y0,F);
+			% Funcval_store(count)=Funcval;
+			% Funcval
+		elseif (search_flag==1)%||(count<3)
+			dP_temp_store=0;
+			% fprintf('Starting direction check\n');
+			for j=1:6
+				if j==1
+					dP=[1; 0; 0; 0; 0; 0];
+				elseif j==2
+					dP=[0; 0; 0; 1; 0; 0];
+				elseif j==3
+					dP=[0; 0.05; 0; 0; 0; 0];
+				elseif j==4
+					dP=[0; 0; 0; 0; 0.05; 0];
+				elseif j==5
+					dP=[0; 0; 0.05; 0; 0; 0];
+				elseif j==6
+					dP=[0; 0; 0; 0; 0; 0.05];
+				end
+				
+				[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
+				Funcval_check(j)=Funcval;
+				stepChange_check(j,:)=step_change;
+				P_check(j,:)=Pout;
+			end
+			% Funcval_check
+			[val,minimum]=min(Funcval_check);
+			normal_fail_count=0;
+			% stepChange_check(minimum,:)
+			if count==1
+				Funcval_store(count)=val;
+				stepChange_store(count,:)=stepChange_check(minimum,:);
+				P=P_check(minimum,:);
+				P_store(count,:)=P;
+				search_flag=0;
+			else
+				if val<=Funcval_store(count-1);
+					Funcval_store(count)=val;
+					stepChange_store(count,:)=stepChange_check(minimum,:);
+					P=P_check(minimum,:);
 					P_store(count,:)=P;
-					stepChange=step_change;
-					stepChange_store(count,:)=stepChange;
-					Funcval_store(count)=Funcval;
-				else
-					
-					Funcval_prev=Funcval;
-					P_prev=Pout;
-					stepChange_prev=step_change;
-					% fprintf('Starting direction check\n');
-					for j=1:6
-						if j==1
-							dP=[1; 0; 0; 0; 0; 0];
-						elseif j==2
-							dP=[0; 0; 0; 1; 0; 0];
-						elseif j==3
-							dP=[0; 0.05; 0; 0; 0; 0];
-						elseif j==4
-							dP=[0; 0; 0; 0; 0.05; 0];
-						elseif j==5
-							dP=[0; 0; 0.05; 0; 0; 0];
-						elseif j==6
-							dP=[0; 0; 0; 0; 0; 0.05];
-						end
-						[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.1,2,save_name);
-						[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
-						Funcval_check(j)=Funcval;
-						stepChange_check(j,:)=step_change;
-						P_check(j,:)=Pout;
-					end
-					% Funcval_check
-					[val,minimum]=min(Funcval_check);
-
-					if (val<Funcval_prev)%&&(val<Funcval_store(count-1))
-						Funcval_store(count)=val;
-						stepChange_store(count,:)=stepChange_check(minimum,:);
-						P=P_check(minimum,:);
-						P_store(count,:)=P;
-						% fprintf('not work   %.16f %d\n',val, minimum);
-					elseif Funcval_prev<val
-						% % options = optimoptions('particleswarm','Display','iter');
-						% lb=P-0.2*abs(P);
-						% ub=P+0.2*abs(P);
-						% tic
-						% Pout = particleswarm(@(P) getJac(coef,P,dy,dx,x0,y0,F,4,choice2,subpos,stepsize,coef_shift,save_name),6,lb,ub)
-						% toc
-						% [G,Funcval]=getJac(coef,Pout,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
-						% Funcval
-						% Funcval_store(count)=Funcval;
-						% stepChange_store(count,:)=Pout-P;
-						% P=Pout;
-						% P_store(count,:)=P;
-
-						Funcval_store(count)=Funcval_prev;
-						stepChange_store(count,:)=stepChange_prev;
-						P=P_prev;
-						P_store(count,:)=P;
-						% fprintf('not work prev  %.16f \n',Funcval_store(count));
-					else
-						Funcval_store(count)=Funcval_store(count-1);
-						stepChange_store(count,:)=stepChange_store(count-1);
-						P=P_store(count-1,:);
-						P_store(count,:)=P;
-						% fprintf('not work prev2  %.16f \n',Funcval_store(count));
-					end
-
+					search_flag=0;
+					fail_count=0;
+					% artificial_dir_count=artificial_dir_count+1;
+				else 
+					exit_flag=1;
+					count=count-1;
+					fail_count=fail_count+1;
+					% Funcval_store(count)=Funcval_store(count-1);
+					% stepChange_store(count,:)=[999,999,999,999,999,999];
+					search_flag=0;
 				end
 			end
 
-			% norm(stepChange_store(count,:))
+		elseif (search_flag==2)%||(count<3)
+			for j=1:2
+				if j==1
+					dP=[1; 0; 0; 0; 0; 0];
+				elseif j==2
+					dP=[0; 0; 0; 1; 0; 0];
+				end
+				
+				[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,stepsize,coef_shift,save_name,xa,xb);
+				P_check(j,:)=Pout;
+				stepChange_check(j,:)=step_change;
+				Funcval_check(j)=Funcval;
+			end
+			% Funcval_check
+			[val,minimum]=min(Funcval_check);
+			normal_fail_count=0;
+			% stepChange_check(minimum,:)
+			if count==1
+				Funcval_store(count)=val;
+				stepChange_store(count,:)=stepChange_check(minimum,:);
+				P=P_check(minimum,:);
+				P_store(count,:)=P;
+				search_flag=0;
+			else
+				if val<=Funcval_store(count-1);
+					Funcval_store(count)=val;
+					stepChange_store(count,:)=stepChange_check(minimum,:);
+					P=P_check(minimum,:);
+					P_store(count,:)=P;
+					search_flag=0;
+					fail_count=0;
+					% artificial_dir_count=artificial_dir_count+1;
+				else 
+					exit_flag=1;
+					count=count-1;
+					fail_count=fail_count+1;
+					% Funcval_store(count)=Funcval_store(count-1);
+					% stepChange_store(count,:)=[999,999,999,999,999,999];
+					search_flag=0;
+				end
+			end
+		end
 		% tic
 		% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
 		% toc
@@ -393,7 +276,7 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 			stop_check1=0;
 		end
 		% if (count>90)||((count>10)&&((norm(stepChange_store(count))<1e-7)&&(Funcval_store(count)<0.005)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))%||(fail_count>20)%||((exit_flag==1)&&count>10)||((artificial_dir_count>10)&&(Funcval_store(count)<0.005)) %||(Funcval<0.001))||(stop_check1==1&&stop_check2==1&&Funcval<0.005&&count>3))%||((norm(stepChange)<0.000001))
-		if (count>90)||((count>10)&&((norm(stepChange_store(count,:))<1e-11)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
+		if (count>90)||((count>10)&&((norm(stepChange_store(count))<1e-11)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
 			flag=1;
 			[val_final,minimum_final]=min(Funcval_store);
 			P_final=P_store(minimum_final,:);
@@ -409,10 +292,10 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 		% 	% 	search_flag=0;
 		% 	end
 		end
-		% if ((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1))
-		% 	search_flag=2;
-		% 	stop_check3=stop_check3+1;
-		% end
+		if ((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1))
+			search_flag=2;
+			stop_check3=stop_check3+1;
+		end
 	end
 
 end
@@ -450,8 +333,6 @@ function varargout=getJac(coef,P,dy,dx,X,Y,F,choice,choice2,subpos,stepsize,coef
 			[varargout{1},varargout{2},varargout{3}]=getJac1(coef,P,dx,dy,X,Y,F,G,choice,subpos,stepsize,coef_shift,r,c,xp,yp);
 		elseif choice==3
 			[varargout{1},varargout{2},varargout{3},varargout{4}]=getJac1(coef,P,dx,dy,X,Y,F,G,choice,subpos,stepsize,coef_shift,r,c,xp,yp);
-		elseif choice==4
-			[~,varargout{1}]=getJac1(coef,P,dx,dy,X,Y,F,G,1,subpos,stepsize,coef_shift,r,c,xp,yp);
 		end
 	elseif choice2==2
 		if choice==1
@@ -460,8 +341,6 @@ function varargout=getJac(coef,P,dy,dx,X,Y,F,choice,choice2,subpos,stepsize,coef
 			[varargout{1},varargout{2},varargout{3}]=getJac2(coef,P,dx,dy,X,Y,F,G,choice,subpos,stepsize,coef_shift,r,c,xp,yp);
 		elseif choice==3
 			[varargout{1},varargout{2},varargout{3},varargout{4}]=getJac2(coef,P,dx,dy,X,Y,F,G,choice,subpos,stepsize,coef_shift,r,c,xp,yp);
-		elseif choice==4
-			[~,varargout{1}]=getJac2(coef,P,dx,dy,X,Y,F,G,1,subpos,stepsize,coef_shift,r,c,xp,yp);
 		end
 	elseif choice2==3
 		if choice==1
@@ -470,8 +349,6 @@ function varargout=getJac(coef,P,dy,dx,X,Y,F,choice,choice2,subpos,stepsize,coef
 			[varargout{1},varargout{2},varargout{3}]=getJac3(coef,P,dx,dy,X,Y,F,G,choice,subpos,stepsize,coef_shift,r,c,xp,yp);
 		elseif choice==3
 			[varargout{1},varargout{2},varargout{3},varargout{4}]=getJac3(coef,P,dx,dy,X,Y,F,G,choice,subpos,stepsize,coef_shift,r,c,xp,yp);
-		elseif choice==4
-			[~,varargout{1}]=getJac3(coef,P,dx,dy,X,Y,F,G,1,subpos,stepsize,coef_shift,r,c,xp,yp);
 		end
 	end
 end

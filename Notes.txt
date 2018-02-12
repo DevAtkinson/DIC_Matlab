@@ -102,6 +102,13 @@ Notes
 				create seperate function for golden section search
 				made getjac functions change based on choice input to NRtracking4
 
+07/02/2018
+11:30 - 	Continue to get NRtracking4 working
+				Add functionality to create a new folder for each project and save relevant data in there
+				Improve dic.m to be more robust and logical
+				Fix issues with NRtracking4
+				Try particle swarm in NRtracking4 when NR breaks down
+
 
 
 TO DO:
@@ -112,6 +119,13 @@ TO DO:
 5. Bracketing function for golden search to ensure search interval is convex
 6. Machine learning/deep learning to adjust parameters of stopping criteria in NRtracking3_temp
 7. Need to do LK_symbolic so that it is more robust for different warp functions
+
+
+functions to be completed:
+LK_symbolic
+NRtracking4
+goldenBracket - determining range that is convex
+
 
 ripple
 ethos

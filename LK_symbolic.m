@@ -1,4 +1,4 @@
-function LK_symbolic(A,X)
+function LK_symbolic(A,X,save_name)
 	syms dx dy x0 y0 P P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14 P15 P16 dxmax dymax;
 	
 	W=A*X;
@@ -109,21 +109,26 @@ function LK_symbolic(A,X)
 	% W_func=matlabFunction(W);
 	% out_func=matlabFunction(out);
 	% AA=matlabFunction(A);
+	[folder,name_short,~] = fileparts(save_name);
+	name1=fullfile(folder,'WarpFunc');
+	name2=fullfile(folder,'dPFunc');
+	name3=fullfile(folder,'WarpMat');
+	name4=fullfile(folder,'Mat2Vec');
 	if (2)*c==6
-		matlabFunction(Wout,'File','WarpFunc','Vars',{dx,dy,[P1 P2 P3 P4 P5 P6]});
-		matlabFunction(out,'File','dPFunc','Vars',{dx,dy});
-		matlabFunction(A,'File','WarpMat','Vars',{[P1 P2 P3 P4 P5 P6]});
-		matlabFunction(M,'File','Mat2Vec','Vars',{[AA]});
+		matlabFunction(Wout,'File',name1,'Vars',{dx,dy,[P1 P2 P3 P4 P5 P6]});
+		matlabFunction(out,'File',name2,'Vars',{dx,dy});
+		matlabFunction(A,'File',name3,'Vars',{[P1 P2 P3 P4 P5 P6]});
+		matlabFunction(M,'File',name4,'Vars',{[AA]});
 	elseif (2)*c==8
-		matlabFunction(Wout,'File','WarpFunc','Vars',{dx,dy,[P1 P2 P3 P4 P5 P6 P7 P8]});
-		matlabFunction(out,'File','dPFunc','Vars',{dx,dy});
-		matlabFunction(A,'File','WarpMat','Vars',{[P1 P2 P3 P4 P5 P6 P7 P8]});
-		matlabFunction(M,'File','Mat2Vec','Vars',{[AA]});
+		matlabFunction(Wout,'File',name1,'Vars',{dx,dy,[P1 P2 P3 P4 P5 P6 P7 P8]});
+		matlabFunction(out,'File',name2,'Vars',{dx,dy});
+		matlabFunction(A,'File',name3,'Vars',{[P1 P2 P3 P4 P5 P6 P7 P8]});
+		matlabFunction(M,'File',name4,'Vars',{[AA]});
 	elseif (2)*c==10
-		matlabFunction(Wout,'File','WarpFunc','Vars',{dx,dy,[P1 P2 P3 P4 P5 P6 P7 P8 P9 P10]});
-		matlabFunction(out,'File','dPFunc','Vars',{dx,dy});
-		matlabFunction(A,'File','WarpMat','Vars',{[P1 P2 P3 P4 P5 P6 P7 P8 P9 P10]});
-		matlabFunction(M,'File','Mat2Vec','Vars',{[AA]});
+		matlabFunction(Wout,'File',name1,'Vars',{dx,dy,[P1 P2 P3 P4 P5 P6 P7 P8 P9 P10]});
+		matlabFunction(out,'File',name2,'Vars',{dx,dy});
+		matlabFunction(A,'File',name3,'Vars',{[P1 P2 P3 P4 P5 P6 P7 P8 P9 P10]});
+		matlabFunction(M,'File',name4,'Vars',{[AA]});
 	end
 					
 				
