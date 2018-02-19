@@ -109,6 +109,16 @@ Notes
 				Fix issues with NRtracking4
 				Try particle swarm in NRtracking4 when NR breaks down - works but takes a long time
 
+14/02/2018
+11:00 - 13:00	Look into how to correct for distortion of lenses - found some papers
+14:00 - 16:10	Continued reading on it and made some adjustments to NR and tried it out (uses about 1gb per worker when pass 3 stepsizes big)
+
+15/02/2018
+12:00 - 15:20	Try matrix interpolation again but it still takes 10 times as long
+				Work on accounting for distortion - create function which corrects radial distortion based on "Systematic errors in 2D DIC
+				due to lens distortion" (is created in NR_symbolic function - not yet for LK)
+16:20 - 18:00	Work on converting pixels to mm for the displacement outputs - looked at lavision files to try find extrinsic parameters
+				Found a variable called pinholeparameters in folder called properties/calibration
 
 
 TO DO:

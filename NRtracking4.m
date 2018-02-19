@@ -54,6 +54,7 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 
 	dx=X-x0;
 	dy=Y-y0;
+
 	% size(coef)
 	% [r_coef,c_coef,~]=size(coef);
 	% coef2=zeros([r_coef*4,c_coef*4]);
@@ -65,6 +66,7 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 	% 		coef2((i*4-3):(i*4),(j*4-3):(j*4))=reshape(coef(i,j,:),[4,4]);
 	% 	end
 	% end
+
 	% % size(coef2)
 	% % P_temp=P;
 	% % clear P;
@@ -77,6 +79,7 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 	fail_count=0;
 	normal_fail_count=0;
 	stop_check3=0;
+
 	while flag==0
 		count=count+1;
 		search_length_flag=0;
@@ -395,10 +398,16 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 		% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,2,choice2,subpos,stepsize,coef_shift,save_name);
 		% toc
 		% meshcompare(F,G)
-		stepChange_store(count,:)
-		Funcval_store(count)
+		% stepChange_store(count,:)
+		% Funcval_store(count)
 		% P
 		% norm(stepChange_store(count,:))
+		% norm_check(1)=stepChange_store(count,1)<1e-4;
+		% norm_check(2)=stepChange_store(count,2)<1e-6;
+		% norm_check(3)=stepChange_store(count,3)<1e-6;
+		% norm_check(4)=stepChange_store(count,4)<1e-4;
+		% norm_check(5)=stepChange_store(count,5)<1e-6;
+		% norm_check(6)=stepChange_store(count,6)<1e-6;
 
 		if count>1
 			stop_check1=Funcval_store(count)/Funcval_store(count-1)<1.005;
@@ -407,8 +416,18 @@ function [P_final,Corr_out,iterations]=NRtracking4(varargin)
 			stop_check2=0;
 			stop_check1=0;
 		end
+		if count>5
+			if (norm(stepChange_store(count-2,:))<1e-9)&(norm(stepChange_store(count-1,:))<1e-9)&(norm(stepChange_store(count,:))<1e-9)
+				stop_check4=1;
+			else
+				stop_check4=0;
+			end
+		else
+			stop_check4=0;
+		end
 		% if (count>90)||((count>10)&&((norm(stepChange_store(count))<1e-7)&&(Funcval_store(count)<0.005)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))%||(fail_count>20)%||((exit_flag==1)&&count>10)||((artificial_dir_count>10)&&(Funcval_store(count)<0.005)) %||(Funcval<0.001))||(stop_check1==1&&stop_check2==1&&Funcval<0.005&&count>3))%||((norm(stepChange)<0.000001))
-		if (count>90)||((count>10)&&((norm(stepChange_store(count,:))<1e-11)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
+		% if (count>90)||((count>10)&&((norm(stepChange_store(count,:))<1e-9)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
+		if (count>90)||((count>10)&&stop_check4==1)||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
 			flag=1;
 			[val_final,minimum_final]=min(Funcval_store);
 			P_final=P_store(minimum_final,:);

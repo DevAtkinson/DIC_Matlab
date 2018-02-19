@@ -1,7 +1,8 @@
-function NR_symbolic(A,B,save_name,PP)
+function NR_symbolic(A,B,save_name,PP,distortion_model)
 	%function to create the functions that will give the symbolic jacobian and hessian of the G values
-	syms dx dy X Y;
+	syms dx dy X Y k1 k2 k3 ud vd uu vu Xd Yd Xu Yu cx cy;
 	P = sym('P_%d', size(PP));
+	k = sym('k_%d', [1 3]);
 		
 	% subs(A,P1,P(1))
 	for i=1:max(size(PP))
@@ -19,7 +20,37 @@ function NR_symbolic(A,B,save_name,PP)
 	% xp=P(1)+P(3).*dy+dx.*(P(2)+1.0)+X;
 	% yp=P(4)+P(5).*dx+dy.*(P(6)+1.0)+Y;
 
-	
+	%distortion model
+	if distortion_model==1
+		xu=X*k(1)*((X-cx)^2+(Y-cy)^2);
+		yu=Y*k(1)*((X-cx)^2+(Y-cy)^2);
+	elseif distortion_model==2
+		xu=X*(k(1)*((X-cx)^2+(Y-cy)^2)+k(2)*((X-cx)^2+(Y-cy)^2)^2);
+		yu=Y*(k(1)*((X-cx)^2+(Y-cy)^2)+k(2)*((X-cx)^2+(Y-cy)^2)^2);
+	elseif distortion_model==3
+		xu=X*(k(1)*((X-cx)^2+(Y-cy)^2)+k(2)*((X-cx)^2+(Y-cy)^2)^2+k(3)*((X-cx)^2+(Y-cy)^2)^3);
+		yu=Y*(k(1)*((X-cx)^2+(Y-cy)^2)+k(2)*((X-cx)^2+(Y-cy)^2)^2+k(3)*((X-cx)^2+(Y-cy)^2)^3);
+	end
+
+	eqxd=subs(xu,X,Xd);
+	eqxd=subs(eqxd,Y,Yd);
+	eqxu=subs(xu,X,Xu);
+	eqxu=subs(eqxu,Y,Yu);
+
+	eqyd=subs(yu,X,Xd);
+	eqyd=subs(eqyd,Y,Yd);
+	eqyu=subs(yu,X,Xu);
+	eqyu=subs(eqyu,Y,Yu);
+
+	uu=P(1)-(eqxd-eqxu);
+	vu=P(4)-(eqyd-eqyu);
+	uu=subs(uu,Xd,(Xu+P(1)));
+	uu=subs(uu,Yd,(Yu+P(4)));
+
+	vu=subs(vu,Xd,(Xu+P(1)));
+	vu=subs(vu,Yd,(Yu+P(4)));
+
+	%determine G
 	a=reshape(coef,[4,4]);
 	% x_dec=mod(xp,1);
 	% y_dec=mod(yp,1);
@@ -33,10 +64,12 @@ function NR_symbolic(A,B,save_name,PP)
 	name1=fullfile(folder,strcat(name_short,'_jac'));
 	name2=fullfile(folder,strcat(name_short,'_hes'));
 	name3=fullfile(folder,strcat(name_short,'_pos'));
+	name4=fullfile(folder,strcat(name_short,'_dist'));
 	warning('off','all');
 	matlabFunction(J,'File',name1,'Optimize',true,'Vars',{coef,P,dx,dy,X,Y});
 	matlabFunction(H,'File',name2,'Optimize',true,'Vars',{coef,P,dx,dy,X,Y});
 	matlabFunction(xp,yp,'File',name3,'Optimize',true,'Vars',{P,dx,dy,X,Y},'Output',{'xp','yp'});
+	matlabFunction(uu,vu,'File',name4,'Optimize',true,'Vars',{P,Xu,Yu,cx,cy,k},'Output',{'uu','vu'});
 	warning('on','all');
 	correctFloor(strcat(name1,'.m'));
 	correctFloor(strcat(name2,'.m'));
