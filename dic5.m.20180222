@@ -1,4 +1,4 @@
-function dic() 
+function dic5() 
 	clear
 	close all
 	clc
@@ -12,8 +12,11 @@ function dic()
 	save_as='check_NRtracking4_stop_crit.mat';
 	save_as='check_NRtracking4_stop_crit_stricter.mat';
 	save_as='check_NRtracking4_stop_crit_stricter_alt_G.mat';
-	save_as='check_LKsymbolic.mat';
+	save_as='check_NRtracking4_recorrrelation_func.mat';
+	save_as='Try_correlation_over_crack_NR.mat';
 	reusing_setup=0;
+	distortion_model=1;
+	func_ver=1;
 	inc=10;
 	%define subset size
 	subsize=41;
@@ -26,7 +29,7 @@ function dic()
 		0 0 1]
 	X=[dx;dy;1];
 
-	correlation_method='LK'
+	correlation_method='NR'
 
 	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -138,7 +141,7 @@ function dic()
 
 	% if you want to use the data from an old correlation but save it as a separate file
 	if reusing_setup==1
-		save_as='check_NRtracking4_recorrrelation_func.mat';
+		save_as='check_NRtracking4_recorrrelation_func2.mat';
 		%determine name of coefficients saving file based on file save name
 		[~,name_short,~] = fileparts(save_as);
 		% determing names of save files and create folder for processed data so that it is not saved within programs folder
@@ -188,25 +191,26 @@ function dic()
 	% functions to create relevant functions for the correlation process
 	fprintf('~ Creating necessary supporting functions...');
 	if strcmp(correlation_method,'NR')==1
-		[folder_check,name_short_check,~] = fileparts(save_full);
-		name1=fullfile(folder_check,strcat(name_short_check,'_jac.m'));
-		name2=fullfile(folder_check,strcat(name_short_check,'_hes.m'));
-		name3=fullfile(folder_check,strcat(name_short_check,'_pos.m'));
-		% if the supporting functions do not exist or if the warp function is different
-		if (exist(name1, 'file')~=2)||(exist(name2, 'file')~=2)||((exist(name3, 'file')~=2))||(isequal(Proc.Warp,B)~=1)||(isequal(Proc.WarpVec,X)~=1) 
-			NR_symbolic(B,X,save_full,P,2);
-		end
+		NR_symbolic(B,X,save_full,P,distortion_model,1);
+		% [folder_check,name_short_check,~] = fileparts(save_full);
+		% name1=fullfile(folder_check,strcat(name_short_check,'_jac.m'));
+		% name2=fullfile(folder_check,strcat(name_short_check,'_hes.m'));
+		% name3=fullfile(folder_check,strcat(name_short_check,'_pos.m'));
+		% % if the supporting functions do not exist or if the warp function is different
+		% if (exist(name1, 'file')~=2)||(exist(name2, 'file')~=2)||((exist(name3, 'file')~=2))||(isequal(Proc.Warp,B)~=1)||(isequal(Proc.WarpVec,X)~=1) 
+		% 	NR_symbolic(B,X,save_full,P,distortion_model,1);
+		% end
 	elseif strcmp(correlation_method,'LK')==1
-		[folder_check,name_short_check,~] = fileparts(save_full);
-		name1=fullfile(folder_check,'WarpFunc.m');
-		name2=fullfile(folder_check,'dPFunc.m');
-		name3=fullfile(folder_check,'WarpMat.m');
-		name4=fullfile(folder_check,'Mat2Vec.m');
-		LK_symbolic(B,X,save_full,P);
-		% if the supporting functions do not exist or if the warp function is different
-		if (isequal(Proc.Warp,B)~=1)||(isequal(Proc.WarpVec,X)~=1)||(exist(name1, 'file')~=2)||(exist(name2, 'file')~=2)||(exist(name3, 'file')~=2)||(exist(name1, 'file')~=2)
-			LK_symbolic(B,X,save_full,P);
-		end
+		LK_symbolic(B,X,save_full,P,distortion_model,1);
+		% [folder_check,name_short_check,~] = fileparts(save_full);
+		% name1=fullfile(folder_check,'WarpFunc.m');
+		% name2=fullfile(folder_check,'dPFunc.m');
+		% name3=fullfile(folder_check,'WarpMat.m');
+		% name4=fullfile(folder_check,'Mat2Vec.m');
+		% % if the supporting functions do not exist or if the warp function is different
+		% if (isequal(Proc.Warp,B)~=1)||(isequal(Proc.WarpVec,X)~=1)||(exist(name1, 'file')~=2)||(exist(name2, 'file')~=2)||(exist(name3, 'file')~=2)||(exist(name1, 'file')~=2)
+		% 	LK_symbolic(B,X,save_full,P,distortion_model,1);
+		% end
 	end
 	fprintf(' Done\n');
 
@@ -223,22 +227,24 @@ function dic()
 		if strcmp(correlation_method,'NR')==1
 			if exist(coef_save_name,'file')
 				load(coef_save_name);
-				if coef_var.im==k
-					coef=coef_var.coef;
+				if coef_image_num==k
+					coef=coef;
 				else
 					clear coef_var;
 					coef=getBicubicValues(G_in);
 					coefficient_time=toc
-					coef_var.coef=coef;
-					coef_var.im=k; 
-					save(coef_save_name,'coef_var','-v7.3','-nocompression');
+					% coef_var.coef=coef;
+					% coef_var.im=k; 
+					coef_image_num=k;
+					save(coef_save_name,'coef','coef_image_num','-v7.3','-nocompression');
 				end
 			else
 				coef=getBicubicValues(G_in);
 				coefficient_time=toc
-				coef_var.coef=coef;
-				coef_var.im=k; 
-				save(coef_save_name,'coef_var','-v7.3','-nocompression');
+				% coef_var.coef=coef;
+				% coef_var.im=k; 
+				coef_image_num=k;
+				save(coef_save_name,'coef','coef_image_num','-v7.3','-nocompression');
 			end
 		end
 		
@@ -249,18 +255,24 @@ function dic()
 			coef_shift(3)=5;
 			[guess,funcval]=particleFirstGuess('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'coef',coef((subpos{process_order(1,2),process_order(1,3)}.coords(1)-stepsize*coef_shift(3)):(subpos{process_order(1,2),process_order(1,3)}.coords(3)+stepsize*coef_shift(3)),(subpos{process_order(1,2),process_order(1,3)}.coords(2)-stepsize*coef_shift(3)):(subpos{process_order(1,2),process_order(1,3)}.coords(4)+stepsize*coef_shift(3)),:),'coef_shift',[0 0 coef_shift(3)],'save_name',save_as,'algorithm',1,'lb',lb,'ub',ub)
 			if strcmp(correlation_method,'NR')==1
-				[PP(1,:),Corrr(1),iter(1)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'coef',coef((subpos{process_order(1,2),process_order(1,3)}.coords(1)-stepsize):(subpos{process_order(1,2),process_order(1,3)}.coords(3)+stepsize),(subpos{process_order(1,2),process_order(1,3)}.coords(2)-stepsize):(subpos{process_order(1,2),process_order(1,3)}.coords(4)+stepsize),:),'coef_shift',[0 0 1],'save_name',save_as,'algorithm',1)
+				subpos_in=subpos{process_order(1,2),process_order(1,3)};
+				F_in_small=F_in(subpos_in.coords(1):subpos_in.coords(3),subpos_in.coords(2):subpos_in.coords(4));
+				% [PP(1,:),Corrr(1),iter(1)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'coef',coef((subpos{process_order(1,2),process_order(1,3)}.coords(1)-stepsize):(subpos{process_order(1,2),process_order(1,3)}.coords(3)+stepsize),(subpos{process_order(1,2),process_order(1,3)}.coords(2)-stepsize):(subpos{process_order(1,2),process_order(1,3)}.coords(4)+stepsize),:),'coef_shift',[0 0 1],'save_name',save_as,'algorithm',1)
+				[PP(1,:),Corrr(1),iter(1)]=NRtracking5('undeformed image',F_in_small,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'save_name',save_as,'coef_name',coef_save_name,'algorithm',1,'func_ver',func_ver)
 			elseif strcmp(correlation_method,'LK')==1
-				[PP(1,:),Corrr(1)]=DICtracking2('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'correlation',3);
+				[PP(1,:),Corrr(1)]=DICtracking3('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(1,2),process_order(1,3)},'guess',guess,'correlation',3,'save_name',save_as,'func_ver',func_ver);
 			end
 			toc
 			for i=2:elements
 				if strcmp(correlation_method,'NR')==1
 					best_guess=bestGuess(Corrr,i-1);
-					[PP(i,:),Corrr(i),iter(i)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',PP(best_guess,:),'coef',coef((subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize),:),'coef_shift',[0 0 1],'save_name',save_as,'algorithm',1)
+					subpos_in=subpos{process_order(i,2),process_order(i,3)};
+					F_in_small=F_in(subpos_in.coords(1):subpos_in.coords(3),subpos_in.coords(2):subpos_in.coords(4));
+					% [PP(i,:),Corrr(i),iter(i)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',PP(best_guess,:),'coef',coef((subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize),:),'coef_shift',[0 0 1],'save_name',save_as,'algorithm',1)
+					[PP(i,:),Corrr(i),iter(i)]=NRtracking5('undeformed image',F_in_small,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',PP(best_guess,:),'save_name',save_as,'coef_name',coef_save_name,'algorithm',1,'func_ver',func_ver)
 				% 	% [PP(i,:),Corrr(i)]=NRtracking3('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',PP(i-1,:),'coef',coef)
 				elseif strcmp(correlation_method,'LK')==1
-					[PP(i,:),Corrr(i)]=DICtracking2('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',PP(i-1,:),'correlation',3);
+					[PP(i,:),Corrr(i)]=DICtracking3('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',PP(i-1,:),'correlation',3,'save_name',save_as,'func_ver',func_ver);
 				end
 			end
 			for j=1:elements
@@ -271,42 +283,66 @@ function dic()
 			clear PP;
 			clear Corrr;
 			clear iter;
-			% parallel_pool=gcp;
-			% ppm = ParforProgMon('Correlation progress', elements,1,500,200);
+			parallel_pool=gcp;
+			ppm = ParforProgMon('Correlation progress', elements,1,500,60);
 			if strcmp(correlation_method,'NR')==1
 				parfor i=1:elements
 					% shift the search area according to the previous displacement estimates
-					Pshift=Proc.im{k-inc}.D(i,6:Pend);
-					coef_shift=[floor(Pshift(4)), floor(Pshift(1))]; %shift of coefficients (first y then x)
-					coef_shift(3)=3;
+					% Pshift=Proc.im{k-inc}.D(i,6:Pend);
+					% coef_shift=[floor(Pshift(4)), floor(Pshift(1))]; %shift of coefficients (first y then x)
+					% coef_shift(3)=3;
+					subpos_in=subpos{process_order(i,2),process_order(i,3)};
+					F_in_small=F_in(subpos_in.coords(1):subpos_in.coords(3),subpos_in.coords(2):subpos_in.coords(4));
 					% coofs=[(subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize+coef_shift(1)):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize+coef_shift(1)),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize+coef_shift(2)):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize+coef_shift(2))];
 					% coef_pass=coef((subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize),:);
-					[PP(i,:),Corrr(i),iter(i)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',Proc.im{k-inc}.D(i,6:Pend),'coef',coef((subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize*coef_shift(3)+coef_shift(1)):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize*coef_shift(3)+coef_shift(1)),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize*coef_shift(3)+coef_shift(2)):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize*coef_shift(3)+coef_shift(2)),:),'coef_shift',coef_shift,'save_name',save_as,'algorithm',1)
-					% ppm.increment();
+					% [PP(i,:),Corrr(i),iter(i)]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',Proc.im{k-inc}.D(i,6:Pend),'coef',coef((subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize*coef_shift(3)+coef_shift(1)):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize*coef_shift(3)+coef_shift(1)),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize*coef_shift(3)+coef_shift(2)):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize*coef_shift(3)+coef_shift(2)),:),'coef_shift',coef_shift,'save_name',save_as,'algorithm',1)
+					[PP(i,:),Corrr(i),iter(i)]=NRtracking5('undeformed image',F_in_small,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',Proc.im{k-inc}.D(i,6:Pend),'save_name',save_as,'coef_name',coef_save_name,'algorithm',1,'func_ver',func_ver)
+					ppm.increment();
 				end
 				PP
 				Corrr
 				iter
 				outliers=isoutlier(Corrr,'median')
+				for i=1:max(size(outliers))
+					if (Corrr(i)>0.008)&(outliers(i)==1)
+						outliers(i)=1;
+					else
+						outliers(i)=0;
+					end
+				end
 				good=ones(size(Corrr));
 				good=good-outliers;
-				while sum(outliers)>0
+				count=1;
+				while (sum(outliers)>0)&&(count<5)
 					[correlation_correction,check_recorrelation]=recorrelationOrder(good,outliers,PP,Corrr)
-					for i=1:sum(check_recorrelation)
+					parfor i=1:sum(check_recorrelation)
 						% shift the search area according to the previous displacement estimates
-						Pshift=Proc.im{k-inc}.D(correlation_correction(i,2),6:Pend);
-						coef_shift=[floor(Pshift(4)), floor(Pshift(1))]; %shift of coefficients (first y then x)
-						coef_shift(3)=3;
+						% Pshift=Proc.im{k-inc}.D(correlation_correction(i,2),6:Pend);
+						% coef_shift=[floor(Pshift(4)), floor(Pshift(1))]; %shift of coefficients (first y then x)
+						% coef_shift(3)=3;
+						
+						subpos_in=subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)};
+						F_in_small=F_in(subpos_in.coords(1):subpos_in.coords(3),subpos_in.coords(2):subpos_in.coords(4));
+						% PP(correlation_correction(i,2),:)
 						% coofs=[(subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize+coef_shift(1)):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize+coef_shift(1)),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize+coef_shift(2)):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize+coef_shift(2))];
 						% coef_pass=coef((subpos{process_order(i,2),process_order(i,3)}.coords(1)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(3)+stepsize),(subpos{process_order(i,2),process_order(i,3)}.coords(2)-stepsize):(subpos{process_order(i,2),process_order(i,3)}.coords(4)+stepsize),:);
-						[PP(correlation_correction(i,1),:),Corrr(correlation_correction(i,1)),iter(correlation_correction(i,1))]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)},'guess',PP(correlation_correction(i,2),6:Pend),'coef',coef((subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(1)-stepsize*coef_shift(3)+coef_shift(1)):(subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(3)+stepsize*coef_shift(3)+coef_shift(1)),(subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(2)-stepsize*coef_shift(3)+coef_shift(2)):(subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(4)+stepsize*coef_shift(3)+coef_shift(2)),:),'coef_shift',coef_shift,'save_name',save_as,'algorithm',1);
+						% [PP(correlation_correction(i,1),:),Corrr(correlation_correction(i,1)),iter(correlation_correction(i,1))]=NRtracking4('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)},'guess',PP(correlation_correction(i,2),6:Pend),'coef',coef((subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(1)-stepsize*coef_shift(3)+coef_shift(1)):(subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(3)+stepsize*coef_shift(3)+coef_shift(1)),(subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(2)-stepsize*coef_shift(3)+coef_shift(2)):(subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)}.coords(4)+stepsize*coef_shift(3)+coef_shift(2)),:),'coef_shift',coef_shift,'save_name',save_as,'algorithm',1);
+						[PPnew(i,:),Corrr_new(i),iter_new(i)]=NRtracking5('undeformed image',F_in_small,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)},'guess',PP(correlation_correction(i,2),:),'save_name',save_as,'coef_name',coef_save_name,'algorithm',1,'func_ver',func_ver);
+						% [PP(correlation_correction(i,1),:),Corrr(correlation_correction(i,1)),iter(correlation_correction(i,1))]=NRtracking5('undeformed image',F_in_small,'subset size',subsize,'stepsize',stepsize,'subset position',subpos{process_order(correlation_correction(i,1),2),process_order(correlation_correction(i,1),3)},'guess',PP(correlation_correction(i,2),:),'save_name',save_as,'coef_name',coef_save_name,'algorithm',1);
+
 						% ppm.increment();
+					end
+					for i=1:sum(check_recorrelation)
+						PP(correlation_correction(i,1),:)=PPnew(i,:);
+						Corrr(correlation_correction(i,1))=Corrr_new(i);
+						iter(correlation_correction(i,1))=iter_new(i);
 					end
 					Corrr
 					outliers=isoutlier(Corrr,'median')
 
 					good=ones(size(Corrr));
 					good=good-outliers;
+					count=count+1;
 				end
 
 				% [val,minn]=min(Corrr);
@@ -353,7 +389,7 @@ function dic()
 
 			elseif strcmp(correlation_method,'LK')==1
 				parfor i=1:elements
-					[PP(i,:),Corrr(i)]=DICtracking2('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',Proc.im{k-inc}.D(i,6:11),'correlation',3);
+					[PP(i,:),Corrr(i)]=DICtracking3('undeformed image',F_in,'deformed image',G_in,'subset size',subsize,'subset position',subpos{process_order(i,2),process_order(i,3)},'guess',Proc.im{k-inc}.D(i,6:11),'correlation',3,'save_name',save_as,'func_ver',func_ver);
 					% ppm.increment();
 				end
 			end
@@ -442,7 +478,7 @@ function [out,check]=recorrelationOrder(good,bad,P,Cor)
 		[val,minimum]=min(distances(:,i));
 		if val<2
 			check(i)=1;
-			minimums{i}.m=find(distances(:,i) == min(distances(:,i))); %find all minimum positions
+			minimums{i}.m=find(distances(:,i) == min(distances(:,i))); %find all good_ind that are also at the minimum distance
 		else
 			check(i)=0;
 		end
@@ -454,7 +490,7 @@ function [out,check]=recorrelationOrder(good,bad,P,Cor)
 			Cor_compare=Cor(minimums{i}.m);
 			[val,mins]=min(Cor_compare);
 			guess_index(i)=minimums{i}.m(mins);
-			out(count,:)=[bad_ind(i),guess_index(i)];
+			out(count,:)=[bad_ind(i),good_ind(guess_index(i))];
 			count=count+1;
 		else
 			guess_index(i)=0;

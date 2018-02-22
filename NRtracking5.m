@@ -1,0 +1,1235 @@
+function [P_final,Corr_out,iterations]=NRtracking5(varargin)
+	for i=1:nargin/2
+		switch varargin{i*2-1}
+		case 'subset size'
+			subsize=varargin{i*2};
+		case 'subset position'
+			subpos=varargin{i*2};
+		case 'undeformed image'
+			% F_in=varargin{i*2};
+			F=varargin{i*2};
+			% F=F_in;
+		case 'deformed image'
+			G_in=varargin{i*2};
+			G=G_in;
+		case 'guess'
+			Pinitial=varargin{i*2};
+		case 'coef'
+			coef=varargin{i*2};%warp function
+		case 'warp2'
+			Warp2_func=varargin{i*2};% Jacobian
+		case 'warp3'
+			Warp3_func=varargin{i*2};%warp matrix
+		case 'stepsize'
+			stepsize=varargin{i*2};
+		case 'coef_shift'
+			coef_shift=varargin{i*2};
+		case 'save_name'
+			save_name=varargin{i*2};
+		case 'algorithm'
+			choice2=varargin{i*2};
+		case 'coef_name'
+			coef_save_name=varargin{i*2};
+		case 'func_ver'
+			func_ver=varargin{i*2};
+		end
+	end
+	
+	% F=F_in(subpos.coords(1):subpos.coords(3),subpos.coords(2):subpos.coords(4));
+	% clear F_in
+	[r,c]=size(F);
+	% size(G)
+	% meshcompare(F_in,G_in)
+	XX=subpos.coords(2):subpos.coords(2)+subsize-1;										% x values over subset
+	YY=subpos.coords(1):subpos.coords(1)+subsize-1;										% y values over subset
+	X=repmat(XX,r,1);
+	Y=repmat(YY',1,c);
+	clear XX
+	clear YY
+	% x0=subsize/2+subpos(1);													% x value for subset centre
+	% y0=subsize/2+subpos(2);													% y value for subset centre
+	x0=subsize/2+subpos.coords(2);													% x value for subset centre
+	y0=subsize/2+subpos.coords(1);													% y value for subset centre
+	P=Pinitial;
+	% [r_g,c_g]=size(G);
+	% [Xmesh,Ymesh]=meshgrid(1:1:c_g,1:1:r_g);
+	% InterpFunc=griddedInterpolant(Xmesh',Ymesh',G','cubic');
+	% flag=0;
+
+	% Fmean=mean(mean(F));
+	% Ftemp=F-ones([subsize, subsize])*Fmean;
+	% dF_temp=sum(sum(Ftemp.^2));
+	% dF=sqrt(dF_temp);
+	% clear dF_temp
+	count=0;
+
+	dx=X-x0;
+	dy=Y-y0;
+
+	% size(coef)
+	% [r_coef,c_coef,~]=size(coef);
+	% coef2=zeros([r_coef*4,c_coef*4]);
+	% for i=1:r_coef
+	% 	for j=1:c_coef
+	% 		% i
+	% 		% j
+	% 		% squeeze(reshape(coef(i,j,:),[4,4]))
+	% 		coef2((i*4-3):(i*4),(j*4-3):(j*4))=reshape(coef(i,j,:),[4,4]);
+	% 	end
+	% end
+
+	% % size(coef2)
+	% % P_temp=P;
+	% % clear P;
+	% % P=[P_temp(1), P_temp(4)];
+	testing=0;
+	dP_flag=0;
+	search_flag=0;
+	exit_flag=0;
+	artificial_dir_count=0;
+	fail_count=0;
+	normal_fail_count=0;
+	stop_check3=0;
+	
+
+	% [~,name_short,~] = fileparts(save_name);
+	% coef_name=strcat(name_short,'_coef');
+	% coef_name=strcat(coef_name,'.mat');
+	coef_obj=matfile(coef_save_name);
+	coef=1;
+	stop_flag=0;
+
+	while stop_flag==0
+		count=count+1;
+		search_length_flag=0;
+
+			if  count<3
+				for j=1:2
+					if j==1
+						dP=[1; 0; 0; 0; 0; 0];
+					elseif j==2
+						dP=[0; 0; 0; 1; 0; 0];
+					end
+					[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,0.1,2,save_name,coef_obj,func_ver);
+					[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,save_name,xa,xb,coef_obj,func_ver);
+					Funcval_check(j)=Funcval;
+					stepChange_check(j,:)=step_change;
+					P_check(j,:)=Pout;
+				end
+				% Funcval_check
+				[val,minimum]=min(Funcval_check);
+				Funcval=val;
+				Pout=P_check(minimum,:);
+				stepChange=stepChange_check(minimum,:);
+			else
+
+
+
+				[G,J,H]=getJac(coef,P,dy,dx,x0,y0,F,2,choice2,subpos,save_name,coef_obj,func_ver);
+				dP=H\J;
+				dP_flag=0;
+
+				% dP_store(count,:)=dP';
+
+				% if (dP_flag==1)||(normal_fail_count==1)
+				% 	[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,stepsize,coef_shift,0.02,2,save_name);
+				% else
+					[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,0.1,2,save_name,coef_obj,func_ver);
+				% end	
+
+				[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,save_name,xa,xb,coef_obj,func_ver);
+			end
+			if count==1
+				P=Pout;
+				P_store(count,:)=P;
+				stepChange=step_change;
+				stepChange_store(count,:)=stepChange;
+				Funcval_store(count)=Funcval;
+			else
+				if Funcval<(Funcval_store(count-1)*1.1)
+					% fprintf('work   %.16f \n',Funcval);
+					P=Pout;
+					P_store(count,:)=P;
+					stepChange=step_change;
+					stepChange_store(count,:)=stepChange;
+					Funcval_store(count)=Funcval;
+				else
+					
+					Funcval_prev=Funcval;
+					P_prev=Pout;
+					stepChange_prev=step_change;
+					% fprintf('Starting direction check\n');
+					for j=1:6
+						if j==1
+							dP=[1; 0; 0; 0; 0; 0];
+						elseif j==2
+							dP=[0; 0; 0; 1; 0; 0];
+						elseif j==3
+							dP=[0; 0.05; 0; 0; 0; 0];
+						elseif j==4
+							dP=[0; 0; 0; 0; 0.05; 0];
+						elseif j==5
+							dP=[0; 0; 0.05; 0; 0; 0];
+						elseif j==6
+							dP=[0; 0; 0; 0; 0; 0.05];
+						end
+						[xa,xb]=GoldenBracket(coef,P,dP,dy,dx,x0,y0,F,1,subpos,0.1,2,save_name,coef_obj,func_ver);
+						[G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,save_name,xa,xb,coef_obj,func_ver);
+						Funcval_check(j)=Funcval;
+						stepChange_check(j,:)=step_change;
+						P_check(j,:)=Pout;
+					end
+					% Funcval_check
+					[val,minimum]=min(Funcval_check);
+
+					if (val<Funcval_prev)%&&(val<Funcval_store(count-1))
+						Funcval_store(count)=val;
+						stepChange_store(count,:)=stepChange_check(minimum,:);
+						P=P_check(minimum,:);
+						P_store(count,:)=P;
+						% fprintf('not work   %.16f %d\n',val, minimum);
+					elseif Funcval_prev<val
+						% options = optimoptions('fmincon','Display','iter');
+						% lb=P-0.2*abs(P);
+						% ub=P+0.2*abs(P);
+						% tic
+						% Pout = particleswarm(@(P) getJac(coef,P,dy,dx,x0,y0,F,4,choice2,subpos,stepsize,coef_shift,save_name),6,lb,ub)
+						% toc
+						% [G,Funcval]=getJac(coef,Pout,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
+						% Funcval
+						% Funcval_store(count)=Funcval;
+						% stepChange_store(count,:)=Pout-P;
+						% P=Pout;
+						% P_store(count,:)=P;
+
+						% lb=P-0.2*abs(P)-[5,0.5,0.5,5,0.5,0.5];
+						% ub=P+0.2*abs(P)+[5,0.5,0.5,5,0.5,0.5];
+						% options = optimoptions('fmincon','Display','iter');
+						% nonlcon = @unitdisk;
+						% tic
+						% Pout = fmincon(@(P) getJac(coef,P,dy,dx,x0,y0,F,4,choice2,subpos,stepsize,coef_shift,save_name),P_store(count-1,:),[],[],[],[],lb,ub,nonlcon,options)
+						% toc
+						% [G,Funcval]=getJac(coef,Pout,dy,dx,x0,y0,F,1,choice2,subpos,stepsize,coef_shift,save_name);
+						% Funcval
+						% Funcval_store(count)=Funcval;
+						% stepChange_store(count,:)=Pout-P;
+						% P=Pout;
+						% P_store(count,:)=P;
+
+						Funcval_store(count)=Funcval_prev;
+						stepChange_store(count,:)=stepChange_prev;
+						P=P_prev;
+						P_store(count,:)=P;
+
+						% fprintf('not work prev  %.16f \n',Funcval_store(count));
+					% else
+					% 	Funcval_store(count)=Funcval_store(count-1);
+					% 	stepChange_store(count,:)=stepChange_store(count-1);
+					% 	P=P_store(count-1,:);
+					% 	P_store(count,:)=P;
+					% 	% fprintf('not work prev2  %.16f \n',Funcval_store(count));
+					end
+
+				end
+			end
+
+			% norm(stepChange_store(count,:))
+		% tic
+		% [G,Funcval]=getJac(coef,P,dy,dx,x0,y0,F,2,choice2,subpos,save_name,coef_obj);
+		% toc
+		% meshcompare(F,G)
+		% stepChange_store(count,:)
+		% Funcval_store(count)
+		% P
+		% norm(stepChange_store(count,:))
+		% norm_check(1)=stepChange_store(count,1)<1e-4;
+		% norm_check(2)=stepChange_store(count,2)<1e-6;
+		% norm_check(3)=stepChange_store(count,3)<1e-6;
+		% norm_check(4)=stepChange_store(count,4)<1e-4;
+		% norm_check(5)=stepChange_store(count,5)<1e-6;
+		% norm_check(6)=stepChange_store(count,6)<1e-6;
+
+		if count>1
+			stop_check1=Funcval_store(count)/Funcval_store(count-1)<1.005;
+			stop_check2=Funcval_store(count)/Funcval_store(count-1)>0.995;
+		else
+			stop_check2=0;
+			stop_check1=0;
+		end
+		if count>5
+			if (norm(stepChange_store(count-2,:))<1e-9)&(norm(stepChange_store(count-1,:))<1e-9)&(norm(stepChange_store(count,:))<1e-9)
+				stop_check4=1;
+			else
+				stop_check4=0;
+			end
+		else
+			stop_check4=0;
+		end
+
+		% if (count>90)||((count>10)&&((norm(stepChange_store(count))<1e-7)&&(Funcval_store(count)<0.005)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))%||(fail_count>20)%||((exit_flag==1)&&count>10)||((artificial_dir_count>10)&&(Funcval_store(count)<0.005)) %||(Funcval<0.001))||(stop_check1==1&&stop_check2==1&&Funcval<0.005&&count>3))%||((norm(stepChange)<0.000001))
+		% if (count>90)||((count>10)&&((norm(stepChange_store(count,:))<1e-9)))||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
+		if (count>80)||((count>10)&&stop_check4==1)||((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1)&&(stop_check3>5))
+			stop_flag=1;
+			[val_final,minimum_final]=min(Funcval_store);
+			P_final=P_store(minimum_final,:);
+			% P_final=P;
+			% meshcompare(F,G)
+			Corr_out=Funcval_store(minimum_final); 
+			% Corr_out=Funcval_store(count); 
+			iterations=count;
+		% elseif count>10
+		% 	if (norm(stepChange_store(count-1,:))<1e-14)&&(norm(stepChange_store(count-2,:))<1e-14)&&(norm(stepChange)<1e-14)%&&(Funcval_store(count)>0.005)
+		% 		search_flag=1; %try alternative artificial search directions
+		% 	% else
+		% 	% 	search_flag=0;
+		% 	end
+		end
+		% if ((count>20)&&(norm(stepChange_store(count))<1e-10)&&(stop_check1==1)&&(stop_check2==1))
+		% 	search_flag=2;
+		% 	stop_check3=stop_check3+1;
+		% end
+	end
+
+end
+
+function varargout=getJac(coef,P,dy,dx,X,Y,F,choice,choice2,subpos,save_name,coef_obj,func_ver)
+	% zero-mean normalised sum of squared difference
+	[r,c]=size(F);
+	xp=zeros([r, c]);
+	yp=zeros([r, c]);
+	G=zeros([r, c]);
+	% numP=max(size(P));
+	clear coef
+
+	% determine the current position of the sample points according to the current estimates of the P parameters
+	[~,name_short,~] = fileparts(save_name);
+	funcname=strcat(name_short,sprintf('_pos%d',func_ver));
+	funcmeup=str2func(funcname);
+	[xp,yp]=funcmeup(P',dx,dy,X,Y);
+
+	xfloor=floor(xp);
+	yfloor=floor(yp);
+	xfloormin=min(min(xfloor));
+	xfloormax=max(max(xfloor));
+	yfloormin=min(min(yfloor));
+	yfloormax=max(max(yfloor));
+	xrange=xfloormin:1:xfloormax;
+	yrange=yfloormin:1:yfloormax;
+	coef_temp=coef_obj.coef(yrange,xrange,:);
+	for i=1:r
+		for j=1:c
+			xpos(i,j)=find(xfloor(i,j)==xrange);
+			ypos(i,j)=find(yfloor(i,j)==yrange);
+			coef(i,j,:)=coef_temp(ypos(i,j),xpos(i,j),:);
+		end
+	end
+	clear coef_temp
+	clear xfloor yfloor xrange yrange
+
+
+	% determine the G values at the sample points using interpolation
+	for i=1:r
+		for j=1:c
+			% used=[floor(yp(i,j)),floor(xp(i,j))]
+			% a=reshape(coef(ypos(i,j),xpos(i,j),:),[4,4]);
+			a=reshape(coef(i,j,:),[4,4]);
+			% a=reshape(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),[4,4]);
+			% a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2),:),[4,4]);
+			x_dec=mod(xp(i,j),1);
+			y_dec=mod(yp(i,j),1);
+			G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+		end
+	end
+
+	% determine the correlation coefficient or jacobian and hessian according to the chosen correlation coefficient equation
+	if choice2==1
+		if choice==1
+			[varargout{1},varargout{2}]=getJac1(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==2
+			[varargout{1},varargout{2},varargout{3}]=getJac1(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==3
+			[varargout{1},varargout{2},varargout{3},varargout{4}]=getJac1(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==4
+			[~,varargout{1}]=getJac1(coef,P,dx,dy,X,Y,F,G,1,subpos,r,c,xp,yp);
+		end
+	elseif choice2==2
+		if choice==1
+			[varargout{1},varargout{2}]=getJac2(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==2
+			[varargout{1},varargout{2},varargout{3}]=getJac2(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==3
+			[varargout{1},varargout{2},varargout{3},varargout{4}]=getJac2(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==4
+			[~,varargout{1}]=getJac2(coef,P,dx,dy,X,Y,F,G,1,subpos,r,c,xp,yp);
+		end
+	elseif choice2==3
+		if choice==1
+			[varargout{1},varargout{2}]=getJac3(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==2
+			[varargout{1},varargout{2},varargout{3}]=getJac3(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==3
+			[varargout{1},varargout{2},varargout{3},varargout{4}]=getJac3(coef,P,dx,dy,X,Y,F,G,choice,subpos,r,c,xp,yp);
+		elseif choice==4
+			[~,varargout{1}]=getJac3(coef,P,dx,dy,X,Y,F,G,1,subpos,r,c,xp,yp);
+		end
+	end
+	clear coef
+end
+
+function varargout=getJac1(coef,P,dy,dx,X,Y,F,G,choice,subpos,r,c,xp,yp)
+	% zero-mean normalised sum of squared difference
+
+	% determine the needed constants for the reference and deformed subset
+	numP=max(size(P));
+	Fmean=mean(mean(F));
+	Gmean=mean(mean(G));
+	F2=sqrt(sum(sum((F-Fmean).^2)));
+	G2=sqrt(sum(sum((G-Gmean).^2)));
+	if choice==1 % if want the correlation coefficient
+		Corr=sum(sum(((F-Fmean)./F2-(G-Gmean)./G2).^2));
+		varargout{1}=G;
+		varargout{2}=Corr;
+	elseif choice==2 % if want the Jacobian and Hessian matrices
+		J=zeros([numP,1]);
+		H=zeros([numP,numP]);
+		for i=1:r
+			for j=1:c
+				% Jacky=(JacobianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				Jacky=(JacobianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				Hess=(HessianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				% Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+
+				J=J+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*((-Jacky')./G2);
+				H=H+(-Jacky'./G2)*(-Jacky./G2) + ((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*(-Hess)./G2; %if transpose jacky outside of brackets it doesn't work
+			end
+		end
+		J=2*J;
+		H=2*H;
+		varargout{1}=G;
+		varargout{2}=J;
+		varargout{3}=H;
+	elseif choice==3
+		Corr=sum(sum(((F-Fmean)./F2-(G-Gmean)./G2).^2));
+		J=zeros([numP,1]);
+		H=zeros([numP,numP]);
+		for i=1:r
+			for j=1:c
+				% Jacky=(JacobianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				Jacky=(JacobianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				Hess=(HessianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+
+				J=J+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*((-Jacky')./G2);
+				H=H+(-Jacky'./G2)*(-Jacky./G2) + ((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*(-Hess)./G2; %if transpose jacky outside of brackets it doesn't work
+			end
+		end
+		J=2*J;
+		H=2*H;
+		varargout{1}=G;
+		varargout{2}=Corr;
+		varargout{3}=J;
+		varargout{4}=H;
+	end
+end
+
+function varargout=getJac2(coef,P,dy,dx,X,Y,F,G,choice,subpos,r,c,xp,yp)
+	% normalised sum of squared difference
+	
+	% determine the needed constants for the reference and deformed subset
+	numP=max(size(P));
+	F2=sqrt(sum(sum(F.^2)));
+	G2=sqrt(sum(sum(G.^2)));
+	if choice==1 % if want the correlation coefficient
+		Corr=sum(sum((F./F2-G./G2).^2));
+		varargout{1}=G;
+		varargout{2}=Corr;
+	elseif choice==2 % if want the Jacobian and Hessian matrices
+		J=zeros([numP,1]);
+		H=zeros([numP,numP]);
+		for i=1:r
+			for j=1:c
+				Jacky=(JacobianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				Hess=(HessianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				% Jacky=(JacobianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+
+				J=J+(F(i,j)/F2-G(i,j)/G2).*((-Jacky')/G2);
+				H=H+(-Jacky'./G2)*(-Jacky./G2) + (F(i,j)/F2-G(i,j)/G2).*(-Hess)/G2; %if transpose jacky outside of brackets it doesn't work
+			end
+		end
+		J=2*J;
+		H=2*H;
+		varargout{1}=G;
+		varargout{2}=J;
+		varargout{3}=H;
+	elseif choice==3 % if want the Jacobian and Hessian matrices
+		J=zeros([numP,1]);
+		H=zeros([numP,numP]);
+		for i=1:r
+			for j=1:c
+				Jacky=(JacobianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				Hess=(HessianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				% Jacky=(JacobianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+
+				J=J+(F(i,j)/F2-G(i,j)/G2).*((-Jacky')/G2);
+				H=H+(-Jacky'./G2)*(-Jacky./G2) + (F(i,j)/F2-G(i,j)/G2).*(-Hess)/G2; %if transpose jacky outside of brackets it doesn't work
+			end
+		end
+		J=2*J;
+		H=2*H;
+		Corr=sum(sum((F./F2-G./G2).^2));
+		varargout{1}=G;
+		varargout{2}=Corr;
+		varargout{3}=J;
+		varargout{4}=H;
+	end
+end
+
+function varargout=getJac3(coef,P,dy,dx,X,Y,F,G,choice,subpos,r,c,xp,yp)
+	% zero-mean sum of squared difference
+	numP=max(size(P));
+	% determine the mean values for the reference and deformed subset
+	Fmean=mean(mean(F));
+	Gmean=mean(mean(G));
+	if choice==1 % if want the correlation coefficient
+		Corr=sum(sum((F-Fmean - (G-Gmean)).^2));
+		varargout{1}=G;
+		varargout{2}=Corr;
+	elseif choice==2 % if want the Jacobian and Hessian matrices
+		J=zeros([numP,1]);
+		H=zeros([numP,numP]);
+		for i=1:r
+			for j=1:c
+				% Jacky=(JacobianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+
+				Jacky=(JacobianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				Hess=(HessianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+
+				J=J+(F(i,j)-Fmean - (G(i,j)-Gmean)).*(-Jacky');
+
+				H=H+(-Jacky')*(-Jacky)+(F(i,j)-Fmean - (G(i,j)-Gmean)).*(-Hess); %if transpose jacky outside of brackets it doesn't work
+			end
+		end
+		J=2*J;
+		H=2*H;
+		varargout{1}=G;
+		varargout{2}=J;
+		varargout{3}=H;
+	elseif choice==3 % if want the Jacobian and Hessian matrices
+		Corr=sum(sum((F-Fmean - (G-Gmean)).^2));
+		J=zeros([numP,1]);
+		H=zeros([numP,numP]);
+		for i=1:r
+			for j=1:c
+				Jacky=(JacobianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+				Hess=(HessianStandard(coef(i,j,:),P',dx(i,j),dy(i,j),X,Y));
+
+				% Jacky=(JacobianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+				% Hess=(HessianStandard(coef_obj.coef(floor(yp(i,j)),floor(xp(i,j)),:),P',dx(i,j),dy(i,j),X,Y));
+
+				J=J+(F(i,j)-Fmean - (G(i,j)-Gmean)).*(-Jacky');
+
+				H=H+(-Jacky')*(-Jacky)+(F(i,j)-Fmean - (G(i,j)-Gmean)).*(-Hess); %if transpose jacky outside of brackets it doesn't work
+			end
+		end
+		J=2*J;
+		H=2*H;
+		varargout{1}=G;
+		varargout{2}=Corr;
+		varargout{3}=J;
+		varargout{4}=H;
+	end
+end
+
+function [aA,aB]=GoldenBracket(coef,P,dP,dy,dx,X,Y,F,choice,subpos,interval,choice2,save_name,coef_obj,func_ver)
+	% interval=0.05
+	if choice2==2
+		interval2=interval;
+		vector=-1.5:interval2:1.5;
+		for i=1:max(size(vector))
+			[G,f(i)]=getJac(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+
+		end
+		[minval,mini]=min(f);
+		if (mini==1)||(mini==max(size(vector)))
+			aA=vector(mini);
+			aB=vector(mini)+interval2;
+		elseif f(mini+1)>f(mini-1)
+			aA=vector(mini)-interval2;
+			aB=vector(mini);
+		else
+			aA=vector(mini);
+			aB=vector(mini)+interval2;
+		end
+	elseif choice2==1
+		aA=0;
+		aB=interval;
+	elseif choce2==3
+		%try to only evaluate correlation values over the range of the function that is convex according to the first order approximation
+		vector1=0:interval2:1.5;
+		vector2=0:-interval2:-1.5;
+		keepgoing=1;
+		count=2;
+		[~,f(1),J{1},~]=getJac(coef,(P+vector1(1)*dP'),dy,dx,X,Y,F,3,choice,subpos,save_name,coef_obj,func_ver);
+		while keepgoing
+			[~,f(count),J{count},H{count}]=getJac(coef,(P+vector1(count)*dP'),dy,dx,X,Y,F,3,choice,subpos,save_name,coef_obj,func_ver);
+			
+			if count==2
+				check(1)=f(1)+(J{1})'*((P+vector1(count)*dP')-(P+vector1(1)*dP'))<=f(count);
+			end
+			check(count)=f(count)+(J{count})'*((P+vector1(count-1)*dP')-(P+vector1(count)*dP'))<=f(count-1);
+
+			if sum(check)~=count
+				keepgoing=0;
+			end
+
+			count=count+1;
+		end
+
+		keepgoing=1;
+		count=2;
+		fneg(1)=f(1);
+		Jneg{1}=J{1};
+		% Hneg{1}=H{1};
+		while keepgoing
+			[~,fneg(count),Jneg{count},~]=getJac(coef,(P+vector2(count)*dP'),dy,dx,X,Y,F,3,choice,subpos,save_name,coef_obj,func_ver);
+			
+			if count==2
+				check(1)=fneg(1)+(Jneg{1})'*((P+vector2(count)*dP')-(P+vector2(1)*dP'))<=fneg(count);
+			end
+			check(count)=fneg(count)+(Jneg{count})'*((P+vector2(count-1)*dP')-(P+vector2(count)*dP'))<=fneg(count-1);
+
+			if sum(check)~=count
+				keepgoing=0;
+			end
+
+			count=count+1;
+		end
+
+		[minval,mini]=min(f);
+		[minvaln,minin]=min(fneg);
+		if mini<minin
+			if (mini==1)||(mini==max(size(vector1)))
+				aA=vector1(mini);
+				aB=vector1(mini)+interval2;
+			elseif f(mini+1)>f(mini-1)
+				aA=vector1(mini)-interval2;
+				aB=vector1(mini);
+			else
+				aA=vector1(mini);
+				aB=vector1(mini)+interval2;
+			end
+		else
+			if (minin==1)||(minin==max(size(vector2)))
+				aA=vector2(minin);
+				aB=vector2(minin)+interval2;
+			elseif fneg(minin+1)>fneg(minin-1)
+				aA=vector2(minin)-interval2;
+				aB=vector2(minin);
+			else
+				aA=vector2(minin);
+				aB=vector2(minin)+interval2;
+			end
+		end
+
+
+
+	% elseif chioce2==3
+	% 	interval2=interval;
+	% 	vector=-1.5:interval2:1.5;
+	% 	for i=1:max(size(vector))
+	% 		if choice==1
+	% 			[G,f(i),JJ{i},HH{i}]=getJac1_eff(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,3,subpos,stepsize,coef_shift,coef2,save_name);
+	% 		elseif choice==2
+	% 			[G,f(i)]=getJac5_eff(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,1,subpos,stepsize,coef_shift);
+	% 		elseif choice==3
+	% 			[G,f(i)]=getJac6_eff(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,1,subpos,stepsize,coef_shift);
+	% 		end
+	% 	end
+	% 	[minval,mini]=min(f);
+	% 	if (mini==1)||(mini==max(size(vector)))
+	% 		aA=vector(mini);
+	% 		aB=vector(mini)+interval2;
+	% 	elseif f(mini+1)>f(mini-1)
+	% 		aA=vector(mini)-interval2;
+	% 		aB=vector(mini);
+	% 	else
+	% 		aA=vector(mini);
+	% 		aB=vector(mini)+interval2;
+	% 	end
+
+
+	% 	[G,J,H]=getJac1_eff(coef,P,dy,dx,X,Y,F,2,subpos,stepsize,coef_shift,coef2);
+	% 	[G,f_0]=getJac1_eff(coef,P,dy,dx,X,Y,F,1,subpos,stepsize,coef_shift,coef2);
+	% 	interval2=interval;
+	% 	vector=-1.5:interval2:1.5;
+	% 	for i=1:max(size(vector))
+	% 		if choice==1
+	% 			[G,f(i)]=getJac1_eff(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,1,subpos,stepsize,coef_shift,coef2,save_name);
+	% 		elseif choice==2
+	% 			[G,f(i)]=getJac5_eff(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,1,subpos,stepsize,coef_shift);
+	% 		elseif choice==3
+	% 			[G,f(i)]=getJac6_eff(coef,(P+vector(i)*dP'),dy,dx,X,Y,F,1,subpos,stepsize,coef_shift);
+	% 		end
+	% 	end
+	% 	for i=1:max(size(vector))
+	% 		check(i)=(f_0+(J')*(vector(i)*dP'))<f(i);
+	% 	end
+	end
+
+	% f(mini)=inf;
+	% [minval2,mini2]=min(f);
+	% aA=min([vector(mini), vector(mini2)]);
+	% aB=max([vector(mini), vector(mini2)]);
+	% aA=0;
+	% aB=interval;
+	[G,f1]=getJac(coef,(P+aA*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+	x1=aA;
+	[G,f2]=getJac(coef,(P+aB*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+	x2=aB;
+	d=abs(aB-aA);
+	if f1<f2
+		x3=aA-d;
+	else
+		x3=aB+d;
+	end
+	[G,f3]=getJac(coef,(P+x3*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+
+	exit_cond=0;
+	count=0;
+	d_inc=0;
+	if (f3<f1)&&(f3<f2)
+		while exit_cond==0 %(f3<min([f1,f2]))
+			count=count+1;
+			if f1<f2
+				x2_temp=x1;
+			else
+				x2_temp=x2;
+			end
+			x1_temp=x3;
+			x1=min([x1_temp,x2_temp]);
+			x2=max([x1_temp,x2_temp]);
+			[G,f1]=getJac(coef,(P+x1*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+			[G,f2]=getJac(coef,(P+x2*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+
+			% d=abs(x1-x2);
+			if count>15
+				d=10*d;
+				d_inc=d_inc+1;
+				count=0;
+			end
+			if f1<f2
+				x3=x1-d;
+			else
+				x3=x2+d;
+			end
+			[G,f3]=getJac(coef,(P+x3*dP'),dy,dx,X,Y,F,1,choice,subpos,save_name,coef_obj,func_ver);
+
+			if f3>min([f1,f2])
+				if d_inc==0
+					exit_cond=1;
+				else
+					d=d/10;
+					d_inc=d_inc-1;
+				end
+			end
+			% f3=f(xm+x3*U,penalty);
+		end
+		% until(f3>min([f1,f2]))
+	end
+	aA=x1;
+	aB=x2;
+end
+
+function [G,Funcval,step_change,Pout]=goldenSection(coef,P,dP,dy,dx,x0,y0,F,choice2,subpos,save_name,xa,xb,coef_obj,func_ver)
+% golden section search
+	iterMax=600;
+	r=(sqrt(5)-1)/2;
+	tol=1e-10;
+
+	Lo=xb-xa;
+   	for i=1:iterMax
+   		if i==1
+   			lambda1=xa+r^2*Lo;
+   			lambda2=xa+r*Lo;
+   			[G,f1]=getJac(coef,(P+(dP')*lambda1),dy,dx,x0,y0,F,1,choice2,subpos,save_name,coef_obj,func_ver);
+   			[G,f2]=getJac(coef,(P+(dP')*lambda2),dy,dx,x0,y0,F,1,choice2,subpos,save_name,coef_obj,func_ver);
+			i=i+1; %two function evaluations in this if statement (i starts at one so one is included already)
+		end
+		if f1>=f2
+			xa=lambda1;
+			lambda1=lambda2;
+			Li=xb-xa;
+			lambda2=xa+r*Li;
+			evaluat=1;
+		elseif f2>f1
+			xb=lambda2;
+			lambda2=lambda1;
+			Li=xb-xa;
+			lambda1=xa+r^2*Li;
+			evaluat=2;
+		else
+			disp('There is an error in the golden section code (NaN or inf values)')
+		end
+		if Li<tol
+			break
+		else
+			if evaluat==1
+				f1=f2;
+				[G,f2]=getJac(coef,(P+(dP')*lambda2),dy,dx,x0,y0,F,1,choice2,subpos,save_name,coef_obj,func_ver);
+			elseif evaluat==2
+				f2=f1;
+				[G,f1]=getJac(coef,(P+(dP')*lambda1),dy,dx,x0,y0,F,1,choice2,subpos,save_name,coef_obj,func_ver);
+			end
+		end
+	end
+	[G,Funcval]=getJac(coef,(P+(dP')*(xa+xb)/2),dy,dx,x0,y0,F,1,choice2,subpos,save_name,coef_obj,func_ver);
+	step_change=(dP')*(xa+xb)/2;
+	Pout=(P+(dP')*(xa+xb)/2);
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+% function varargout=getJac5_eff(coef,P,dy,dx,X,Y,F,choice,subpos,stepsize,coef_shift)
+% 	% zero-mean sum of squared difference
+% 	[r,c]=size(F);
+% 	xp=zeros([r, c]);
+% 	yp=zeros([r, c]);
+% 	G=zeros([r, c]);
+% 	numP=max(size(P));
+
+% 	% determine the current position of the sample points according to the current estimates of the P parameters
+% 	for i=1:r
+% 		for j=1:c
+% 			xp(i,j)=P(1)+P(3).*dy(i,j)+dx(i,j).*(P(2)+1.0)+X;
+% 			yp(i,j)=P(4)+P(5).*dx(i,j)+dy(i,j).*(P(6)+1.0)+Y;
+% 		end
+% 	end
+
+% 	% determine the G values at the sample points using interpolation
+% 	for i=1:r
+% 		for j=1:c
+% 			a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize-coef_shift(2),:),[4,4]);
+% 			x_dec=mod(xp(i,j),1);
+% 			y_dec=mod(yp(i,j),1);
+% 			if numP==6
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+% 			elseif numP==7
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3]+P(7);
+% 			elseif numP==8
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3].*P(8)+P(7);
+% 			end
+% 		end
+% 	end
+% 	% determine the mean values for the reference and deformed subset
+% 	Fmean=mean(mean(F));
+% 	Gmean=mean(mean(G));
+% 	if choice==1 % if want the correlation coefficient
+% 		Corr=sum(sum((F-Fmean - (G-Gmean)).^2));
+% 		varargout{1}=G;
+% 		varargout{2}=Corr;
+% 	elseif choice==2 % if want the Jacobian and Hessian matrices
+% 		J=zeros([numP,1]);
+% 		H=zeros([numP,numP]);
+% 		for i=1:r
+% 			for j=1:c
+% 				Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize,floor(xp(i,j))-subpos.coords(2)+1+stepsize,:),P',dx(i,j),dy(i,j),X,Y));
+% 				Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize,floor(xp(i,j))-subpos.coords(2)+1+stepsize,:),P',dx(i,j),dy(i,j),X,Y));
+
+% 				J=J+(F(i,j)-Fmean - (G(i,j)-Gmean)).*(-Jacky');
+
+% 				H=H+(-Jacky')*(-Jacky)+(F(i,j)-Fmean - (G(i,j)-Gmean)).*(-Hess); %if transpose jacky outside of brackets it doesn't work
+% 			end
+% 		end
+% 		J=2*J;
+% 		H=2*H;
+% 		varargout{1}=G;
+% 		varargout{2}=J;
+% 		varargout{3}=H;
+% 	end
+% end
+
+% function varargout=getJac6_eff(coef,P,dy,dx,X,Y,F,choice,subpos,stepsize,coef_shift)
+% 	% normalised sum of squared difference
+% 	[r,c]=size(F);
+% 	xp=zeros([r, c]);
+% 	yp=zeros([r, c]);
+% 	G=zeros([r, c]);
+% 	numP=max(size(P));
+
+% 	% determine the current position of the sample points according to the current estimates of the P parameters
+% 	for i=1:r
+% 		for j=1:c
+% 			xp(i,j)=P(1)+P(3).*dy(i,j)+dx(i,j).*(P(2)+1.0)+X;
+% 			yp(i,j)=P(4)+P(5).*dx(i,j)+dy(i,j).*(P(6)+1.0)+Y;
+% 		end
+% 	end
+
+% 	% determine the G values at the sample points using interpolation
+% 	for i=1:r
+% 		for j=1:c
+% 			a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize-coef_shift(2),:),[4,4]);
+% 			x_dec=mod(xp(i,j),1);
+% 			y_dec=mod(yp(i,j),1);
+% 			if numP==6
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+% 			elseif numP==7
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3]+P(7);
+% 			elseif numP==8
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3].*P(8)+P(7);
+% 			end
+% 		end
+% 	end
+% 	% determine the needed constants for the reference and deformed subset
+% 	F2=sqrt(sum(sum(F.^2)));
+% 	G2=sqrt(sum(sum(G.^2)));
+% 	if choice==1 % if want the correlation coefficient
+% 		Corr=sum(sum((F./F2-G./G2).^2));
+% 		varargout{1}=G;
+% 		varargout{2}=Corr;
+% 	elseif choice==2 % if want the Jacobian and Hessian matrices
+% 		J=zeros([numP,1]);
+% 		H=zeros([numP,numP]);
+% 		for i=1:r
+% 			for j=1:c
+% 				Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize,floor(xp(i,j))-subpos.coords(2)+1+stepsize,:),P',dx(i,j),dy(i,j),X,Y));
+% 				Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize,floor(xp(i,j))-subpos.coords(2)+1+stepsize,:),P',dx(i,j),dy(i,j),X,Y));
+
+% 				J=J+(F(i,j)/F2-G(i,j)/G2).*((-Jacky')/G2);
+% 				H=H+(-Jacky'./G2)*(-Jacky./G2) + (F(i,j)/F2-G(i,j)/G2).*(-Hess)/G2; %if transpose jacky outside of brackets it doesn't work
+% 			end
+% 		end
+% 		J=2*J;
+% 		H=2*H;
+% 		varargout{1}=G;
+% 		varargout{2}=J;
+% 		varargout{3}=H;
+% 	end
+% end
+
+% function varargout=getJac1_eff(coef,P,dy,dx,X,Y,F,choice,subpos,stepsize,coef_shift,coef2,save_name)
+% 	% zero-mean normalised sum of squared difference
+% 	[r,c]=size(F);
+% 	xp=zeros([r, c]);
+% 	yp=zeros([r, c]);
+% 	G=zeros([r, c]);
+% 	numP=max(size(P));
+% 	% determine the current position of the sample points according to the current estimates of the P parameters
+% 	% for i=1:r
+% 	% 	for j=1:c
+% 	% 		xp(i,j)=P(1)+P(3).*dy(i,j)+dx(i,j).*(P(2)+1.0)+X;
+% 	% 		yp(i,j)=P(4)+P(5).*dx(i,j)+dy(i,j).*(P(6)+1.0)+Y;
+% 	% 	end
+% 	% end
+% 	[~,name_short,~] = fileparts(save_name);
+% 	funcname=strcat(name_short,'_pos');
+% 	funcmeup=str2func(funcname);
+% 	[xp,yp]=funcmeup(P',dx,dy,X,Y);
+% 	% xp=P(1)+P(3).*dy+dx.*(P(2)+1.0)+X;
+% 	% yp=P(4)+P(5).*dx+dy.*(P(6)+1.0)+Y;
+
+% 	% determine the G values at the sample points using interpolation
+% 	for i=1:r
+% 		for j=1:c
+% 			% used=[floor(yp(i,j)),floor(xp(i,j))]
+% 			a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2),:),[4,4]);
+% 			x_dec=mod(xp(i,j),1);
+% 			y_dec=mod(yp(i,j),1);
+% 			G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+% 		end
+% 	end
+	
+% 	% for i=1:r
+% 	% 	for j=1:c
+% 	% 		% used=[floor(yp(i,j)),floor(xp(i,j))]
+% 	% 		% a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2),:),[4,4]);
+% 	% 		x_dec=mod(xp(i,j),1);
+% 	% 		y_dec=mod(yp(i,j),1);
+% 	% 		y_ind=floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1);
+% 	% 		x_ind=floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2);
+% 	% 		X_vec(j,(x_ind*4-3):(x_ind*4))=[1, x_dec, x_dec^2, x_dec^3];
+% 	% 		Y_vec((y_ind*4-3):(y_ind*4),i)=[1; y_dec; y_dec^2; y_dec^3];
+% 	% 		% if numP==6
+% 	% 		% 	G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+% 	% 		% elseif numP==7
+% 	% 		% 	G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3]+P(7);
+% 	% 		% elseif numP==8
+% 	% 		% 	G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3].*P(8)+P(7);
+% 	% 		% end
+% 	% 	end
+% 	% end
+% 	% % size(X_vec)
+% 	% % size(Y_vec)
+% 	% G=X_vec*coef2*Y_vec;
+% 	% size(G)
+
+
+% 	% [r_coef,c_coef]=size(coef2);
+% 	% X_vec=zeros([r*c,r_coef]);
+% 	% Y_vec=zeros([r_coef,c*r]);
+% 	% x_dec=mod(xp,1);
+% 	% y_dec=mod(yp,1);
+% 	% y_ind=floor(yp)-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1);
+% 	% x_ind=floor(xp)-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2);
+% 	% % y_ind=[2 5; 6 4]
+% 	% % r=2
+% 	% % c=2
+% 	% y_ind1=(reshape(y_ind,1,r*c)-1).*4*r*c+[1:1:r*c];
+% 	% y_ind2=y_ind1+1*r*c;
+% 	% y_ind3=y_ind1+2*r*c;
+% 	% y_ind4=y_ind1+3*r*c;
+% 	% % r=2
+% 	% % c=2
+% 	% % r_coef=160
+% 	% % x_ind=[2 3; 4 5]
+% 	% x_ind1=((reshape(x_ind,1,r*c)-1).*4+1+([1:1:r*c]-1)*r_coef);
+% 	% x_ind2=x_ind1+1;
+% 	% x_ind3=x_ind1+2;
+% 	% x_ind4=x_ind1+3;
+
+% 	% X_vec(y_ind1)=ones([r,c]);
+% 	% X_vec(y_ind2)=x_dec(:);
+% 	% X_vec(y_ind3)=x_dec(:).^2;
+% 	% X_vec(y_ind4)=x_dec(:).^3;
+
+% 	% Y_vec(x_ind1)=ones([r,c]);
+% 	% Y_vec(x_ind2)=y_dec(:);
+% 	% Y_vec(x_ind3)=y_dec(:).^2;
+% 	% Y_vec(x_ind4)=y_dec(:).^3;
+% 	% % size(Y_vec)
+% 	% % Y_vec
+% 	% GG=X_vec*coef2*Y_vec;
+% 	% G=reshape(diag(GG),r,c);
+
+
+
+% 	% determine the needed constants for the reference and deformed subset
+% 	Fmean=mean(mean(F));
+% 	Gmean=mean(mean(G));
+% 	F2=sqrt(sum(sum((F-Fmean).^2)));
+% 	G2=sqrt(sum(sum((G-Gmean).^2)));
+% 	if choice==1 % if want the correlation coefficient
+% 		% Corr=0;
+% 		% for i=1:r
+% 		% 	for j=1:c
+% 		% 		Corr=Corr+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).^2;
+% 		% 	end
+% 		% end
+% 		Corr=sum(sum(((F-Fmean)./F2-(G-Gmean)./G2).^2));
+% 		varargout{1}=G;
+% 		varargout{2}=Corr;
+% 	elseif choice==2 % if want the Jacobian and Hessian matrices
+% 		J=zeros([numP,1]);
+% 		H=zeros([numP,numP]);
+% 		for i=1:r
+% 			for j=1:c
+% 				Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+% 				Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+
+% 				J=J+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*((-Jacky')./G2);
+% 				H=H+(-Jacky'./G2)*(-Jacky./G2) + ((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*(-Hess)./G2; %if transpose jacky outside of brackets it doesn't work
+% 			end
+% 		end
+% 		J=2*J;
+% 		H=2*H;
+% 		varargout{1}=G;
+% 		varargout{2}=J;
+% 		varargout{3}=H;
+% 	elseif choice==3
+% 		Corr=sum(sum(((F-Fmean)./F2-(G-Gmean)./G2).^2));
+% 		J=zeros([numP,1]);
+% 		H=zeros([numP,numP]);
+% 		for i=1:r
+% 			for j=1:c
+% 				Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+% 				Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+
+% 				J=J+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*((-Jacky')./G2);
+% 				H=H+(-Jacky'./G2)*(-Jacky./G2) + ((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*(-Hess)./G2; %if transpose jacky outside of brackets it doesn't work
+% 			end
+% 		end
+% 		J=2*J;
+% 		H=2*H;
+% 		varargout{1}=G;
+% 		varargout{2}=Corr;
+% 		varargout{3}=J;
+% 		varargout{4}=H;
+% 	end
+% end
+
+
+
+
+
+
+
+
+
+
+
+
+% function varargout=getJac1_eff(coef,P,dy,dx,X,Y,F,choice,subpos,stepsize,coef_shift,coef2)
+% 	% zero-mean normalised sum of squared difference
+% 	[r,c]=size(F);
+% 	xp=zeros([r, c]);
+% 	yp=zeros([r, c]);
+% 	G=zeros([r, c]);
+% 	numP=max(size(P));
+% 	% determine the current position of the sample points according to the current estimates of the P parameters
+% 	% for i=1:r
+% 	% 	for j=1:c
+% 	% 		xp(i,j)=P(1)+P(3).*dy(i,j)+dx(i,j).*(P(2)+1.0)+X;
+% 	% 		yp(i,j)=P(4)+P(5).*dx(i,j)+dy(i,j).*(P(6)+1.0)+Y;
+% 	% 	end
+% 	% end
+% 	xp=P(1)+P(3).*dy+dx.*(P(2)+1.0)+X;
+% 	yp=P(4)+P(5).*dx+dy.*(P(6)+1.0)+Y;
+
+% 	% determine the G values at the sample points using interpolation
+% 	for i=1:r
+% 		for j=1:c
+% 			% used=[floor(yp(i,j)),floor(xp(i,j))]
+% 			a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2),:),[4,4]);
+% 			x_dec=mod(xp(i,j),1);
+% 			y_dec=mod(yp(i,j),1);
+% 			if numP==6
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+% 			elseif numP==7
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3]+P(7);
+% 			elseif numP==8
+% 				G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3].*P(8)+P(7);
+% 			end
+% 		end
+% 	end
+	
+% 	% for i=1:r
+% 	% 	for j=1:c
+% 	% 		% used=[floor(yp(i,j)),floor(xp(i,j))]
+% 	% 		% a=reshape(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2),:),[4,4]);
+% 	% 		x_dec=mod(xp(i,j),1);
+% 	% 		y_dec=mod(yp(i,j),1);
+% 	% 		y_ind=floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1);
+% 	% 		x_ind=floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2);
+% 	% 		X_vec(j,(x_ind*4-3):(x_ind*4))=[1, x_dec, x_dec^2, x_dec^3];
+% 	% 		Y_vec((y_ind*4-3):(y_ind*4),i)=[1; y_dec; y_dec^2; y_dec^3];
+% 	% 		% if numP==6
+% 	% 		% 	G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3];
+% 	% 		% elseif numP==7
+% 	% 		% 	G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3]+P(7);
+% 	% 		% elseif numP==8
+% 	% 		% 	G(i,j)=[1, x_dec, x_dec^2, x_dec^3]*a*[1; y_dec; y_dec^2; y_dec^3].*P(8)+P(7);
+% 	% 		% end
+% 	% 	end
+% 	% end
+% 	% % size(X_vec)
+% 	% % size(Y_vec)
+% 	% G=X_vec*coef2*Y_vec;
+% 	% size(G)
+
+
+% 	% [r_coef,c_coef]=size(coef2);
+% 	% X_vec=zeros([r*c,r_coef]);
+% 	% Y_vec=zeros([r_coef,c*r]);
+% 	% x_dec=mod(xp,1);
+% 	% y_dec=mod(yp,1);
+% 	% y_ind=floor(yp)-subpos.coords(1)+1+stepsize*coef_shift(3)-coef_shift(1);
+% 	% x_ind=floor(xp)-subpos.coords(2)+1+stepsize*coef_shift(3)-coef_shift(2);
+% 	% % y_ind=[2 5; 6 4]
+% 	% % r=2
+% 	% % c=2
+% 	% y_ind1=(reshape(y_ind,1,r*c)-1).*4*r*c+[1:1:r*c];
+% 	% y_ind2=y_ind1+1*r*c;
+% 	% y_ind3=y_ind1+2*r*c;
+% 	% y_ind4=y_ind1+3*r*c;
+% 	% % r=2
+% 	% % c=2
+% 	% % r_coef=160
+% 	% % x_ind=[2 3; 4 5]
+% 	% x_ind1=((reshape(x_ind,1,r*c)-1).*4+1+([1:1:r*c]-1)*r_coef);
+% 	% x_ind2=x_ind1+1;
+% 	% x_ind3=x_ind1+2;
+% 	% x_ind4=x_ind1+3;
+
+% 	% X_vec(y_ind1)=ones([r,c]);
+% 	% X_vec(y_ind2)=x_dec(:);
+% 	% X_vec(y_ind3)=x_dec(:).^2;
+% 	% X_vec(y_ind4)=x_dec(:).^3;
+
+% 	% Y_vec(x_ind1)=ones([r,c]);
+% 	% Y_vec(x_ind2)=y_dec(:);
+% 	% Y_vec(x_ind3)=y_dec(:).^2;
+% 	% Y_vec(x_ind4)=y_dec(:).^3;
+% 	% % size(Y_vec)
+% 	% % Y_vec
+% 	% GG=X_vec*coef2*Y_vec;
+% 	% G=reshape(diag(GG),r,c);
+
+
+
+% 	% determine the needed constants for the reference and deformed subset
+% 	Fmean=mean(mean(F));
+% 	Gmean=mean(mean(G));
+% 	F2=sqrt(sum(sum((F-Fmean).^2)));
+% 	G2=sqrt(sum(sum((G-Gmean).^2)));
+% 	if choice==1 % if want the correlation coefficient
+% 		% Corr=0;
+% 		% for i=1:r
+% 		% 	for j=1:c
+% 		% 		Corr=Corr+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).^2;
+% 		% 	end
+% 		% end
+% 		Corr=sum(sum(((F-Fmean)./F2-(G-Gmean)./G2).^2));
+% 		varargout{1}=G;
+% 		varargout{2}=Corr;
+% 	elseif choice==2 % if want the Jacobian and Hessian matrices
+% 		J=zeros([numP,1]);
+% 		H=zeros([numP,numP]);
+% 		for i=1:r
+% 			for j=1:c
+% 				Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+% 				Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+
+% 				J=J+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*((-Jacky')./G2);
+% 				H=H+(-Jacky'./G2)*(-Jacky./G2) + ((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*(-Hess)./G2; %if transpose jacky outside of brackets it doesn't work
+% 			end
+% 		end
+% 		J=2*J;
+% 		H=2*H;
+% 		varargout{1}=G;
+% 		varargout{2}=J;
+% 		varargout{3}=H;
+% 	elseif choice==3
+% 		Corr=sum(sum(((F-Fmean)./F2-(G-Gmean)./G2).^2));
+% 		J=zeros([numP,1]);
+% 		H=zeros([numP,numP]);
+% 		for i=1:r
+% 			for j=1:c
+% 				Jacky=(JacobianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+% 				Hess=(HessianStandard(coef(floor(yp(i,j))-subpos.coords(1)+1+stepsize*coef_shift(3),floor(xp(i,j))-subpos.coords(2)+1+stepsize*coef_shift(3),:),P',dx(i,j),dy(i,j),X,Y));
+
+% 				J=J+((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*((-Jacky')./G2);
+% 				H=H+(-Jacky'./G2)*(-Jacky./G2) + ((F(i,j)-Fmean)/F2-(G(i,j)-Gmean)/G2).*(-Hess)./G2; %if transpose jacky outside of brackets it doesn't work
+% 			end
+% 		end
+% 		J=2*J;
+% 		H=2*H;
+% 		varargout{1}=G;
+% 		varargout{2}=Corr;
+% 		varargout{3}=J;
+% 		varargout{4}=H;
+% 	end
+% end

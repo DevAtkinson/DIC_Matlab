@@ -120,6 +120,25 @@ Notes
 16:20 - 18:00	Work on converting pixels to mm for the displacement outputs - looked at lavision files to try find extrinsic parameters
 				Found a variable called pinholeparameters in folder called properties/calibration
 
+21/02/2018
+10:10 - 18:00	Create function to find the nearest neighbour subset with the lowest correlation value - findNearestNeighbour
+				Create function recorrelationOrder to take in bad and good subsets and determine which bad subsets to improve so that it 
+				gradually build up good subsets around originally good subsets
+				Check function matfile for dynamically calling the interpolation coefficient values to improve memory utilisation and 
+				allow more cores to be used in NR
+				Try improve efficiency of dynamic calling (NRtracking5) - initially it was very time consuming but got it to be quicker - still not as 
+				quick as passing the coefficient values to the function (but it allows the code to be more robust)
+				Try not passing G to NRtracking5 to reduce memory usage since it isn't needed; only the interpolation coefficients are needed
+				Work on getting recorrelation function to work with NRtracking(5) (dic5) - getting it to work in parfor loop - working but doesn't 
+				always improve correlation values
+
+22/02/2018
+11:00 - 	Edit LKsymbolic to be more robust and made it similar to NRsymbolic
+				Create DICtracking3 which is DICtracking2 adapted to work with new method of using symbolic functions
+				Write function to extrapolate an initial guess from the P parameters that have already been worked out - not working
+				Create particle swarm function for NR that will be used for the initial guess and to improve subsets of poor
+				correlation that are identified as outliers
+
 
 TO DO:
 1. For NR only determine coefficients for data that is close to the area of correlation to reduce memory usage and allow more cores to be used - done somewhat

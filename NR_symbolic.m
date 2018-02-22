@@ -1,4 +1,4 @@
-function NR_symbolic(A,B,save_name,PP,distortion_model)
+function NR_symbolic(A,B,save_name,PP,distortion_model,vers)
 	%function to create the functions that will give the symbolic jacobian and hessian of the G values
 	syms dx dy X Y k1 k2 k3 ud vd uu vu Xd Yd Xu Yu cx cy;
 	P = sym('P_%d', size(PP));
@@ -61,10 +61,10 @@ function NR_symbolic(A,B,save_name,PP,distortion_model)
 	J=jacobian(G,P);
 	H=hessian(G,P);
 	[folder,name_short,~] = fileparts(save_name);
-	name1=fullfile(folder,strcat(name_short,'_jac'));
-	name2=fullfile(folder,strcat(name_short,'_hes'));
-	name3=fullfile(folder,strcat(name_short,'_pos'));
-	name4=fullfile(folder,strcat(name_short,'_dist'));
+	name1=fullfile(folder,strcat(name_short,sprintf('_jac%d',vers)));
+	name2=fullfile(folder,strcat(name_short,sprintf('_hes%d',vers)));
+	name3=fullfile(folder,strcat(name_short,sprintf('_pos%d',vers)));
+	name4=fullfile(folder,strcat(name_short,sprintf('_dist%d',vers)));
 	warning('off','all');
 	matlabFunction(J,'File',name1,'Optimize',true,'Vars',{coef,P,dx,dy,X,Y});
 	matlabFunction(H,'File',name2,'Optimize',true,'Vars',{coef,P,dx,dy,X,Y});
